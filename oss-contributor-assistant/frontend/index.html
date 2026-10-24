@@ -5,89 +5,395 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OSS Contributor Assistant</title>
     <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .markdown-content h2 { margin-top: 1.5rem; margin-bottom: 0.75rem; font-size: 1.25rem; font-weight: 600; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.25rem; }
-        .markdown-content h3 { margin-top: 1rem; margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 600; }
-        .markdown-content p { margin-bottom: 0.75rem; line-height: 1.6; }
-        .markdown-content ul { margin-bottom: 0.75rem; padding-left: 1.25rem; }
-        .markdown-content li { margin-bottom: 0.3rem; line-height: 1.6; }
-        .markdown-content code { background: #f3f4f6; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.9em; font-family: monospace; }
-        .markdown-content pre { background: #f3f4f6; padding: 0.75rem; border-radius: 6px; overflow-x: auto; margin-bottom: 0.75rem; }
-        .markdown-content pre code { background: none; padding: 0; font-size: 0.9em; }
+        code, .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .markdown-content h1 { margin-top: 1.5rem; margin-bottom: 0.75rem; font-size: 1.4rem; font-weight: 700; color: #111827; }
+        .markdown-content h2 { margin-top: 1.5rem; margin-bottom: 0.75rem; font-size: 1.25rem; font-weight: 600; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.35rem; color: #1f2937; }
+        .markdown-content h3 { margin-top: 1rem; margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 600; color: #374151; }
+        .markdown-content p { margin-bottom: 0.75rem; line-height: 1.65; color: #374151; }
+        .markdown-content ul { margin-bottom: 0.75rem; padding-left: 1.25rem; list-style-type: disc; }
+        .markdown-content ol { margin-bottom: 0.75rem; padding-left: 1.25rem; list-style-type: decimal; }
+        .markdown-content li { margin-bottom: 0.3rem; line-height: 1.6; color: #374151; }
+        .markdown-content code { background: #f3f4f6; color: #4338ca; padding: 0.15rem 0.35rem; border-radius: 4px; font-size: 0.88em; }
+        .markdown-content pre { background: #1e293b; color: #f8fafc; padding: 1rem; border-radius: 8px; overflow-x: auto; margin-bottom: 0.85rem; }
+        .markdown-content pre code { background: transparent; color: inherit; padding: 0; font-size: 0.88em; }
+        .markdown-content blockquote { border-left: 4px solid #6366f1; padding-left: 1rem; color: #4b5563; margin-bottom: 0.75rem; font-style: italic; }
+        details summary { list-style: none; }
+        details summary::-webkit-details-marker { display: none; }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-slate-50 min-h-screen text-slate-800">
 
-<nav class="bg-white shadow-sm border-b border-gray-200">
-    <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-            <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">AI</div>
-            <span class="font-bold text-xl text-gray-800">OSS Contributor Assistant</span>
+<!-- Navigation -->
+<nav class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-50">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-sm">AI</div>
+            <div>
+                <span class="font-bold text-xl text-slate-900 tracking-tight">OSS Contributor Assistant</span>
+                <span class="hidden sm:inline-block ml-2 text-xs bg-indigo-50 text-indigo-700 font-medium px-2 py-0.5 rounded-full border border-indigo-200">Hacktoberfest Ready</span>
+            </div>
         </div>
-        <span class="text-xs text-gray-500 font-mono">Local Ollama + GitHub API</span>
+        <div class="flex items-center gap-3 text-xs text-slate-500 font-mono">
+            <div id="rateLimitBadge" class="hidden sm:flex items-center gap-1.5 bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200">
+                <span id="rateLimitDot" class="w-2 h-2 rounded-full bg-slate-400"></span>
+                <span id="rateLimitText">Checking rate limit...</span>
+            </div>
+            <span class="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full border border-emerald-200">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Local Ollama
+            </span>
+        </div>
     </div>
 </nav>
 
-<div class="max-w-4xl mx-auto px-4 py-8">
-    <div class="bg-white rounded-xl shadow border border-gray-200 p-6 mb-8">
-        <h1 class="text-2xl font-bold text-gray-900 mb-2">Get contribution guidance for any public repo</h1>
-        <p class="text-gray-600 mb-6">Paste a GitHub repository URL. We'll read the README, LICENSE, and open issues, then suggest a beginner-friendly first issue.</p>
+<div class="max-w-5xl mx-auto px-4 py-8">
+    <!-- Search / Analyze Form -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 mb-8">
+        <h1 class="text-2xl font-bold text-slate-900 mb-2">Get contribution guidance for any public repository</h1>
+        <p class="text-slate-600 mb-6 text-sm leading-relaxed">
+            Paste any GitHub repository URL. We inspect the README, CONTRIBUTING guidelines, license, latest commit, and open issues, then generate an actionable roadmap for your first pull request.
+        </p>
 
         <form id="repoForm" class="space-y-4">
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">GitHub Repository URL</label>
-                <input type="url" id="repoUrl" required
-                    placeholder="https://github.com/owner/repo"
-                    class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
-                    value="https://github.com/microsoft/vscode">
+                <label class="block text-sm font-semibold text-slate-700 mb-1.5">GitHub Repository URL</label>
+                <div class="relative">
+                    <input type="url" id="repoUrl" required
+                        placeholder="https://github.com/owner/repo"
+                        class="w-full pl-4 pr-12 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-slate-900 text-sm shadow-sm"
+                        value="https://github.com/octocat/Hello-World">
+                    <span class="absolute right-4 top-3.5 text-slate-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                    </span>
+                </div>
             </div>
-            <div class="flex items-center gap-3">
-                <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                    <input type="checkbox" id="expertMode" class="rounded text-indigo-600 focus:ring-indigo-500">
-                    Expert mode (detailed guidance)
+            <div class="flex items-center justify-between">
+                <label class="flex items-center gap-2.5 text-sm text-slate-700 cursor-pointer select-none">
+                    <input type="checkbox" id="expertMode" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                    <span class="font-medium">Expert Mode</span>
+                    <span class="text-xs text-slate-500">(detailed architectural deep-dive)</span>
                 </label>
             </div>
+
+            <!-- GitHub Token (Optional) -->
+            <details class="text-xs text-slate-600 group">
+                <summary class="cursor-pointer text-indigo-600 hover:text-indigo-800 font-semibold select-none flex items-center justify-between py-1">
+                    <div class="flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                        <span>GitHub Token Authentication</span>
+                        <span class="text-[11px] text-slate-400 font-normal hidden sm:inline">- unlocks 5,000 requests/hr (avoids rate limits)</span>
+                    </div>
+                    <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-180 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <div class="mt-2.5 p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                    <div class="flex gap-2">
+                        <input type="password" id="githubToken"
+                            placeholder="ghp_... or gho_... (or leave blank to auto-detect from Git)"
+                            class="flex-1 px-3 py-2 text-xs font-mono border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
+                        <button type="button" id="saveTokenBtn" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium rounded-lg text-xs transition">
+                            Save
+                        </button>
+                    </div>
+                    <p class="text-[11px] text-slate-500 leading-normal">
+                        💡 <strong>Auto-detection enabled</strong>: If left blank, the assistant automatically uses credentials from your local Git Credential Manager or <code>GITHUB_TOKEN</code> environment variable.
+                    </p>
+                </div>
+            </details>
             <button type="submit" id="submitBtn"
-                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
-                Analyze Repository
+                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3.5 px-6 rounded-xl transition duration-150 shadow-md hover:shadow-indigo-100 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                <span>Analyze Repository</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
             </button>
         </form>
     </div>
 
-    <div id="loading" class="hidden flex flex-col items-center gap-3 py-10">
-        <div class="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-        <p class="text-gray-600">Fetching repo data and generating guidance...</p>
-        <p class="text-xs text-gray-400">This may take 20-60 seconds on first run (warming up Ollama).</p>
+    <!-- Loading State -->
+    <div id="loading" class="hidden flex flex-col items-center gap-4 py-16 bg-white rounded-2xl border border-slate-200 p-8 shadow-sm text-center">
+        <div class="relative w-14 h-14">
+            <div class="w-14 h-14 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
+        </div>
+        <div>
+            <h3 class="text-base font-semibold text-slate-900 mb-1">Analyzing Repository Signals</h3>
+            <p class="text-sm text-slate-600">Fetching README, CONTRIBUTING guidelines, latest commit, and synthesizing advice with Ollama...</p>
+        </div>
+        <span class="text-xs text-slate-400 font-mono">Typically takes ~3 to 8 seconds with local LLM</span>
     </div>
 
-    <div id="error" class="hidden bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-        <h3 class="text-red-800 font-semibold mb-1">Error</h3>
-        <p class="text-red-700 text-sm" id="errorMsg"></p>
-    </div>
-
-    <div id="result" class="hidden">
-        <div class="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
-            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                <div>
-                    <h2 id="resultRepoName" class="text-xl font-bold text-gray-900"></h2>
-                    <p id="resultRepoDesc" class="text-gray-600 text-sm"></p>
-                </div>
-                <div class="flex gap-2 text-xs">
-                    <span class="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full font-medium" id="resultStars">0 stars</span>
-                    <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded-full font-medium" id="resultLicense">N/A</span>
-                </div>
+    <!-- Error State -->
+    <div id="error" class="hidden bg-rose-50 border border-rose-200 rounded-xl p-5 mb-8">
+        <div class="flex items-start gap-3">
+            <div class="text-rose-500 mt-0.5">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </div>
-            <div class="p-6">
-                <div id="resultContent" class="markdown-content prose prose-sm max-w-none"></div>
-            </div>
-            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
-                <h3 class="font-semibold text-gray-900 mb-2 text-sm uppercase tracking-wide">Open Issues</h3>
-                <div id="resultIssues" class="space-y-2 max-h-60 overflow-y-auto pr-2"></div>
+            <div>
+                <h3 class="text-rose-900 font-semibold text-sm mb-1">Analysis Failed</h3>
+                <p class="text-rose-700 text-sm leading-relaxed" id="errorMsg"></p>
             </div>
         </div>
+    </div>
+
+    <!-- Results Section -->
+    <div id="result" class="hidden space-y-6">
+
+        <!-- 1. Metadata Header Banner -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-7">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+                <div>
+                    <div class="flex items-center gap-3 mb-1">
+                        <h2 id="resultRepoName" class="text-2xl font-bold text-slate-900"></h2>
+                        <a id="resultRepoLink" href="#" target="_blank" rel="noopener" class="text-indigo-600 hover:text-indigo-800 transition" title="Open repository on GitHub">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                        </a>
+                    </div>
+                    <p id="resultRepoDesc" class="text-slate-600 text-sm max-w-2xl"></p>
+                </div>
+                <div class="flex flex-wrap gap-2 text-xs">
+                    <span id="resultStars" class="bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1 rounded-full font-medium flex items-center gap-1.5">
+                        ⭐ 0 stars
+                    </span>
+                    <span id="resultLicense" class="bg-slate-100 text-slate-700 border border-slate-200 px-3 py-1 rounded-full font-medium flex items-center gap-1.5">
+                        ⚖️ N/A
+                    </span>
+                </div>
+            </div>
+
+            <!-- Last Fetched Date, Time & Commit ID -->
+            <div class="mt-4 pt-1 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-500 font-mono">
+                <div class="flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span>Last fetched:</span>
+                    <span id="resultLastFetched" class="font-semibold text-slate-700"></span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                    <span>Latest Commit:</span>
+                    <a id="resultCommitLink" href="#" target="_blank" rel="noopener" class="font-bold text-indigo-600 hover:text-indigo-800 hover:underline">
+                        <span id="resultCommitSha">N/A</span>
+                    </a>
+                    <span id="resultCommitMsg" class="text-slate-400 truncate max-w-xs"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. AI Code Allowed & Easy Issue Section (2-Column Grid) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <!-- AI Code Policy Card -->
+            <div id="aiPolicyCard" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between gap-3 mb-3">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Contribution Policy</span>
+                        <span id="aiPolicyBadge" class="text-xs font-bold px-2.5 py-1 rounded-full border">
+                            Unknown
+                        </span>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-900 mb-2 flex items-center gap-2">
+                        <span>🤖 AI Code Allowed:</span>
+                        <span id="aiPolicyStatusText" class="text-indigo-600 font-extrabold"></span>
+                    </h3>
+                    <p id="aiPolicyReason" class="text-sm text-slate-600 leading-relaxed"></p>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+                    <span>Parsed from repo guidelines & license</span>
+                    <span class="font-mono">Policy Check</span>
+                </div>
+            </div>
+
+            <!-- Easy-to-Fix Open Issue Card -->
+            <div id="easyIssueCard" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between gap-3 mb-3">
+                        <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">Recommended First Issue</span>
+                        <span id="easyIssueNumber" class="text-xs font-mono font-bold text-slate-500"></span>
+                    </div>
+                    <a id="easyIssueLink" href="#" target="_blank" rel="noopener" class="text-base font-bold text-slate-900 hover:text-indigo-600 transition block mb-2 leading-snug">
+                        <span id="easyIssueTitle">Loading issue...</span> ↗
+                    </a>
+                    <div id="easyIssueLabels" class="flex flex-wrap gap-1.5 mb-3"></div>
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-600 leading-relaxed">
+                        <strong class="text-slate-800">Why this issue?</strong>
+                        <p id="easyIssueWhy" class="mt-1"></p>
+                    </div>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                    <span>Targeted scope for beginners</span>
+                    <a id="easyIssueBtn" href="#" target="_blank" rel="noopener" class="text-indigo-600 font-semibold hover:underline">Open on GitHub ↗</a>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 3. Branch & Naming Conventions (Quick View) -->
+        <div class="bg-gradient-to-br from-indigo-50/70 via-white to-slate-50 rounded-2xl shadow-sm border border-indigo-100 p-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-indigo-100/70">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-sm font-bold shadow-sm">🌿</div>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base">Branch & Naming Conventions (Quick View)</h3>
+                        <p class="text-xs text-slate-500">Repository-specific git workflow extracted from guidelines & README</p>
+                    </div>
+                </div>
+                <span class="inline-flex items-center gap-1.5 text-xs font-mono bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full font-semibold border border-indigo-200 self-start sm:self-auto">
+                    Base: <span id="quickTargetBranch" class="font-bold">main</span>
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- 1. Target Base Branch -->
+                <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Target Base Branch</span>
+                        <div class="flex items-center gap-1.5 font-mono text-sm font-bold text-indigo-700">
+                            <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+                            <code id="quickBaseBranch" class="bg-indigo-50 px-2 py-0.5 rounded text-indigo-800 border border-indigo-100">main</code>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-2">PRs must be opened against this branch</p>
+                </div>
+
+                <!-- 2. Feature Branch Pattern -->
+                <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Branch Naming Pattern</span>
+                        <div class="font-mono text-xs font-bold text-emerald-800 truncate">
+                            <code id="quickBranchPattern" class="bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-emerald-800 block truncate">fix/<issue>-<name></code>
+                        </div>
+                    </div>
+                    <p id="quickBranchSource" class="text-[11px] text-slate-500 mt-2 truncate">Detected in Guidelines</p>
+                </div>
+
+                <!-- 3. Commit & PR Title Style -->
+                <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Commit / PR Style</span>
+                        <div class="font-mono text-xs font-bold text-purple-800 truncate">
+                            <span id="quickCommitStyle" class="bg-purple-50 px-2 py-0.5 rounded border border-purple-200 text-purple-800 inline-block truncate max-w-full">Conventional</span>
+                        </div>
+                    </div>
+                    <p id="quickCommitEx" class="text-[11px] text-slate-500 mt-2 truncate">feat: ... / fix: ...</p>
+                </div>
+
+                <!-- 4. Verification & Test Command -->
+                <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Local Test Command</span>
+                        <div class="font-mono text-xs font-bold text-amber-800 truncate">
+                            <code id="quickTestCmd" class="bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-amber-800 block truncate">pytest</code>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-2">Run locally before creating PR</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Contribution Guide (Expandable Section with Custom Steps) -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <details class="group" open>
+                <summary class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between cursor-pointer select-none hover:bg-slate-100/70 transition">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm">🛠️</div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-base">Step-by-Step Contribution Guide</h3>
+                            <p class="text-xs text-slate-500">Standard 6-step workflow for newcomer pull requests</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs font-semibold text-indigo-600">
+                        <span class="group-open:hidden">Expand</span>
+                        <span class="hidden group-open:inline">Collapse</span>
+                        <svg class="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+                </summary>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="contributionStepsContainer">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                </div>
+            </details>
+        </div>
+
+        <!-- 4. AI-Generated Summary & Roadmap -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-indigo-600 font-bold text-base">🤖</span>
+                    <h3 class="font-bold text-slate-900 text-base">AI Contributor Roadmap & Analysis</h3>
+                </div>
+                <span class="text-xs font-mono text-slate-500">Ollama Inference</span>
+            </div>
+            <div class="p-6 md:p-8">
+                <div id="resultContent" class="markdown-content text-sm max-w-none"></div>
+            </div>
+        </div>
+
+        <!-- 5. Expandable Contribution File with GitHub URL -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <details class="group">
+                <summary class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between cursor-pointer select-none hover:bg-slate-100/70 transition">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">📄</div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-base">Repository CONTRIBUTING Guide</h3>
+                            <p class="text-xs text-slate-500">Full contributing rules and guidelines</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <a id="contributingGithubUrl" href="#" target="_blank" rel="noopener" onclick="event.stopPropagation();"
+                            class="text-xs font-semibold text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg flex items-center gap-1 transition">
+                            <span>Open on GitHub</span>
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                        </a>
+                        <svg class="w-4 h-4 text-slate-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+                </summary>
+                <div class="p-6 md:p-8 bg-slate-50/50 max-h-[500px] overflow-y-auto">
+                    <div id="contributingContent" class="markdown-content text-sm bg-white p-6 rounded-xl border border-slate-200">
+                        <p class="text-slate-500 italic">Loading guidelines...</p>
+                    </div>
+                </div>
+            </details>
+        </div>
+
+        <!-- 6. Expandable README File with GitHub URL -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <details class="group">
+                <summary class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between cursor-pointer select-none hover:bg-slate-100/70 transition">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">📖</div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-base">Repository README</h3>
+                            <p class="text-xs text-slate-500">Full project README documentation</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <a id="readmeGithubUrl" href="#" target="_blank" rel="noopener" onclick="event.stopPropagation();"
+                            class="text-xs font-semibold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-lg flex items-center gap-1 transition">
+                            <span>Open on GitHub</span>
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                        </a>
+                        <svg class="w-4 h-4 text-slate-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+                </summary>
+                <div class="p-6 md:p-8 bg-slate-50/50 max-h-[500px] overflow-y-auto">
+                    <div id="readmeContent" class="markdown-content text-sm bg-white p-6 rounded-xl border border-slate-200">
+                        <p class="text-slate-500 italic">Loading README...</p>
+                    </div>
+                </div>
+            </details>
+        </div>
+
+        <!-- 7. Open Issues List -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-bold text-slate-900 text-base">Open Issues</h3>
+                <span id="issuesCountBadge" class="text-xs font-mono bg-slate-200 text-slate-700 px-2.5 py-0.5 rounded-full font-medium"></span>
+            </div>
+            <div id="resultIssues" class="p-6 space-y-3 max-h-80 overflow-y-auto"></div>
+        </div>
+
     </div>
 </div>
 
@@ -97,11 +403,69 @@ const loading = document.getElementById('loading');
 const error = document.getElementById('error');
 const result = document.getElementById('result');
 const submitBtn = document.getElementById('submitBtn');
+const tokenInput = document.getElementById('githubToken');
+const saveTokenBtn = document.getElementById('saveTokenBtn');
+
+const apiBase = (window.location.protocol === 'file:')
+    ? 'http://localhost:8001'
+    : '';
+
+// Initialize stored token
+if (tokenInput) {
+    const saved = localStorage.getItem('github_token') || '';
+    tokenInput.value = saved;
+    if (saveTokenBtn) {
+        saveTokenBtn.addEventListener('click', () => {
+            const val = tokenInput.value.trim();
+            if (val) {
+                localStorage.setItem('github_token', val);
+            } else {
+                localStorage.removeItem('github_token');
+            }
+            checkRateLimit();
+        });
+    }
+}
+
+async function checkRateLimit() {
+    try {
+        const tok = (tokenInput ? tokenInput.value.trim() : '') || localStorage.getItem('github_token') || '';
+        const url = `${apiBase}/github/rate-limit` + (tok ? `?token=${encodeURIComponent(tok)}` : '');
+        const r = await fetch(url);
+        if (r.ok) {
+            const data = await r.json();
+            const badge = document.getElementById('rateLimitBadge');
+            const dot = document.getElementById('rateLimitDot');
+            const text = document.getElementById('rateLimitText');
+            if (badge && dot && text) {
+                badge.classList.remove('hidden');
+                if (data.authenticated) {
+                    dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+                    badge.className = 'hidden sm:flex items-center gap-1.5 bg-emerald-50 text-emerald-800 px-3 py-1 rounded-full border border-emerald-200';
+                    text.textContent = `🟢 ${data.remaining?.toLocaleString() || 0} req/hr`;
+                    badge.title = `Authenticated via ${data.source}. Limit: ${data.limit?.toLocaleString() || 5000} req/hr.`;
+                } else {
+                    const low = (data.remaining || 0) < 15;
+                    dot.className = `w-2 h-2 rounded-full ${low ? 'bg-rose-500' : 'bg-amber-500'}`;
+                    badge.className = `hidden sm:flex items-center gap-1.5 ${low ? 'bg-rose-50 text-rose-800 border-rose-200' : 'bg-amber-50 text-amber-800 border-amber-200'} px-3 py-1 rounded-full border`;
+                    text.textContent = `🟡 ${data.remaining || 0}/${data.limit || 60} req/hr`;
+                    badge.title = 'Add a GitHub token below or use Git Credential Manager to unlock 5,000 requests/hour.';
+                }
+            }
+        }
+    } catch (e) {
+        // silent fail
+    }
+}
+
+// Check rate limit on load
+checkRateLimit();
 
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const url = document.getElementById('repoUrl').value.trim();
     const expert = document.getElementById('expertMode').checked;
+    const token = (tokenInput ? tokenInput.value.trim() : '') || localStorage.getItem('github_token') || undefined;
 
     loading.classList.remove('hidden');
     error.classList.add('hidden');
@@ -109,20 +473,22 @@ form.addEventListener('submit', async (e) => {
     submitBtn.disabled = true;
 
     try {
-        const resp = await fetch('/analyze', {
+        const resp = await fetch(`${apiBase}/analyze`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ repo_url: url })
+            body: JSON.stringify({ repo_url: url, expert: expert, github_token: token })
         });
 
         if (!resp.ok) {
-            const err = await resp.json().catch(() => ({ detail: 'Unknown error' }));
-            throw new Error(err.detail || 'Request failed');
+            const err = await resp.json().catch(() => ({ detail: 'Unknown server error' }));
+            throw new Error(err.detail || 'Analysis request failed');
         }
 
         const data = await resp.json();
         renderResult(data);
         result.classList.remove('hidden');
+        result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        checkRateLimit();
     } catch (err) {
         document.getElementById('errorMsg').textContent = err.message;
         error.classList.remove('hidden');
@@ -133,34 +499,175 @@ form.addEventListener('submit', async (e) => {
 });
 
 function renderResult(data) {
-    document.getElementById('resultRepoName').textContent = data.repo.full_name || data.repo.name;
-    document.getElementById('resultRepoDesc').textContent = data.description || 'No description available.';
-    document.getElementById('resultStars').textContent = `${data.stars || 0} stars`;
-    document.getElementById('resultLicense').textContent = data.license || 'N/A';
+    // 1. Header & Metadata
+    const repoName = data.repo.full_name || `${data.repo.owner}/${data.repo.name}`;
+    document.getElementById('resultRepoName').textContent = repoName;
+    document.getElementById('resultRepoLink').href = data.repo.html_url || `https://github.com/${repoName}`;
+    document.getElementById('resultRepoDesc').textContent = data.description || 'No description provided by repository.';
+    document.getElementById('resultStars').textContent = `⭐ ${(data.stars || 0).toLocaleString()} stars`;
+    document.getElementById('resultLicense').textContent = `⚖️ ${data.license || 'N/A'}`;
 
+    // Last Fetched Date, Time & Commit
+    const lastFetched = data.last_fetched?.formatted || (data.last_fetched?.iso ? new Date(data.last_fetched.iso).toLocaleString() : 'Just now');
+    document.getElementById('resultLastFetched').textContent = lastFetched;
+
+    const commit = data.latest_commit || {};
+    const commitSha = commit.short_sha || (commit.sha ? commit.sha.substring(0, 7) : 'N/A');
+    document.getElementById('resultCommitSha').textContent = commitSha;
+    if (commit.html_url) {
+        document.getElementById('resultCommitLink').href = commit.html_url;
+    }
+    if (commit.message) {
+        document.getElementById('resultCommitMsg').textContent = `("${commit.message}")`;
+    } else {
+        document.getElementById('resultCommitMsg').textContent = '';
+    }
+
+    // 2. AI Code Allowed Policy
+    const aiPolicy = data.ai_policy || { status: 'Unknown', reason: 'No policy specified.' };
+    const aiBadge = document.getElementById('aiPolicyBadge');
+    const aiStatusText = document.getElementById('aiPolicyStatusText');
+    const aiReason = document.getElementById('aiPolicyReason');
+
+    aiStatusText.textContent = aiPolicy.status;
+    aiReason.textContent = aiPolicy.reason;
+
+    // Reset styles
+    aiBadge.className = 'text-xs font-bold px-2.5 py-1 rounded-full border ';
+    if (aiPolicy.status.toLowerCase() === 'yes') {
+        aiBadge.className += 'bg-emerald-100 text-emerald-800 border-emerald-300';
+        aiStatusText.className = 'text-emerald-600 font-extrabold';
+    } else if (aiPolicy.status.toLowerCase() === 'limited') {
+        aiBadge.className += 'bg-amber-100 text-amber-800 border-amber-300';
+        aiStatusText.className = 'text-amber-600 font-extrabold';
+    } else if (aiPolicy.status.toLowerCase() === 'no') {
+        aiBadge.className += 'bg-rose-100 text-rose-800 border-rose-300';
+        aiStatusText.className = 'text-rose-600 font-extrabold';
+    } else {
+        aiBadge.className += 'bg-slate-100 text-slate-800 border-slate-300';
+        aiStatusText.className = 'text-slate-600 font-extrabold';
+    }
+    aiBadge.textContent = aiPolicy.status.toUpperCase();
+
+    // 3. Easy-to-Fix Open Issue
+    const easyIssue = data.easy_issue || {};
+    const easyTitle = document.getElementById('easyIssueTitle');
+    const easyLink = document.getElementById('easyIssueLink');
+    const easyNumber = document.getElementById('easyIssueNumber');
+    const easyLabels = document.getElementById('easyIssueLabels');
+    const easyWhy = document.getElementById('easyIssueWhy');
+    const easyBtn = document.getElementById('easyIssueBtn');
+
+    if (easyIssue.number) {
+        easyNumber.textContent = `#${easyIssue.number}`;
+        easyTitle.textContent = easyIssue.title || 'Untitled Issue';
+        easyLink.href = easyIssue.html_url || '#';
+        easyBtn.href = easyIssue.html_url || '#';
+        easyWhy.textContent = easyIssue.why || 'Identified as a beginner-friendly issue.';
+
+        easyLabels.innerHTML = (easyIssue.labels || []).map(l =>
+            `<span class="text-[11px] bg-indigo-50 text-indigo-700 border border-indigo-100 font-medium px-2 py-0.5 rounded-full">${l}</span>`
+        ).join('');
+    } else {
+        easyNumber.textContent = '';
+        easyTitle.textContent = easyIssue.title || 'No active open issues found';
+        easyLink.href = '#';
+        easyBtn.style.display = 'none';
+        easyWhy.textContent = easyIssue.why || 'Repository has no open issues.';
+        easyLabels.innerHTML = '';
+    }
+
+    // 3.5. Branch & Naming Conventions Quick View
+    const conv = data.conventions || {};
+    const targetBranch = conv.target_branch || data.repo.default_branch || 'main';
+    document.getElementById('quickTargetBranch').textContent = targetBranch;
+    document.getElementById('quickBaseBranch').textContent = targetBranch;
+    document.getElementById('quickBranchPattern').textContent = conv.branch_pattern || 'fix/<issue>-<name>';
+    document.getElementById('quickBranchSource').textContent = conv.branch_source || 'Standard Best Practice';
+    document.getElementById('quickCommitStyle').textContent = conv.commit_convention || 'Conventional';
+    document.getElementById('quickCommitEx').textContent = conv.commit_example || 'feat: ... / fix: ...';
+    document.getElementById('quickTestCmd').textContent = conv.test_command || 'Run test suite';
+
+    // 4. Contribution Steps
+    const stepsContainer = document.getElementById('contributionStepsContainer');
+    stepsContainer.innerHTML = '';
+    const steps = data.contribution_steps || [];
+    steps.forEach(s => {
+        const stepDiv = document.createElement('div');
+        stepDiv.className = 'p-4 rounded-xl border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-sm transition flex flex-col justify-between';
+        stepDiv.innerHTML = `
+            <div>
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">${s.step}</span>
+                    <h4 class="font-bold text-slate-900 text-sm">${s.title}</h4>
+                </div>
+                <p class="text-xs text-slate-600 leading-relaxed">${s.summary}</p>
+            </div>
+        `;
+        stepsContainer.appendChild(stepDiv);
+    });
+
+    // 5. AI Summary Content
     document.getElementById('resultContent').innerHTML = marked ? marked.parse(data.summary || '') : (data.summary || '');
 
+    // 6. Expandable CONTRIBUTING.md
+    const contrib = data.contributing || {};
+    const contribUrl = contrib.html_url || `https://github.com/${repoName}/blob/${data.repo.default_branch || 'main'}/CONTRIBUTING.md`;
+    document.getElementById('contributingGithubUrl').href = contribUrl;
+    if (contrib.content && contrib.content.trim().length > 0) {
+        document.getElementById('contributingContent').innerHTML = marked ? marked.parse(contrib.content) : contrib.content;
+    } else {
+        document.getElementById('contributingContent').innerHTML = `
+            <div class="text-center py-6 text-slate-500">
+                <p class="font-semibold text-sm">No separate CONTRIBUTING file found in this repository.</p>
+                <p class="text-xs mt-1">Please refer to the README or the general contribution steps above.</p>
+            </div>
+        `;
+    }
+
+    // 7. Expandable README.md
+    const readme = data.readme || {};
+    const readmeUrl = readme.html_url || `https://github.com/${repoName}/blob/${data.repo.default_branch || 'main'}/README.md`;
+    document.getElementById('readmeGithubUrl').href = readmeUrl;
+    if (readme.content && readme.content.trim().length > 0) {
+        document.getElementById('readmeContent').innerHTML = marked ? marked.parse(readme.content) : readme.content;
+    } else {
+        document.getElementById('readmeContent').innerHTML = `
+            <div class="text-center py-6 text-slate-500">
+                <p class="font-semibold text-sm">No README content available.</p>
+            </div>
+        `;
+    }
+
+    // 8. Open Issues List
     const issuesContainer = document.getElementById('resultIssues');
     issuesContainer.innerHTML = '';
-    (data.open_issues || []).slice(0, 8).forEach(issue => {
-        const div = document.createElement('div');
-        div.className = 'border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 transition cursor-pointer';
-        const labelsHtml = (issue.labels || []).map(l => `<span class="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded mr-1">${l}</span>`).join('');
-        div.innerHTML = `
-            <div class="flex justify-between items-start mb-1">
-                <span class="font-bold text-gray-900 text-sm">#${issue.number}</span>
-                <a href="${issue.html_url}" target="_blank" rel="noopener" class="text-xs text-indigo-600 hover:underline">Open on GitHub</a>
-            </div>
-            <div class="text-gray-700 text-sm leading-tight mb-2">${issue.title}</div>
-            <div class="flex flex-wrap gap-1">${labelsHtml}</div>
-        `;
-        issuesContainer.appendChild(div);
-    });
-}
+    const openIssues = data.open_issues || [];
+    document.getElementById('issuesCountBadge').textContent = `${openIssues.length} issues loaded`;
 
-// Auto-resolve relative API base (works when opened via file:// or served)
-const base = window.location.origin;
-window.__API_BASE__ = base;
+    if (openIssues.length === 0) {
+        issuesContainer.innerHTML = '<div class="text-slate-500 text-xs italic py-2">No open issues found in this repository.</div>';
+    } else {
+        openIssues.slice(0, 10).forEach(issue => {
+            const div = document.createElement('div');
+            div.className = 'border border-slate-200 rounded-xl p-3.5 bg-white hover:bg-slate-50/70 hover:border-slate-300 transition';
+            const labelsHtml = (issue.labels || []).map(l =>
+                `<span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200 font-medium">${l}</span>`
+            ).join(' ');
+            div.innerHTML = `
+                <div class="flex justify-between items-start gap-2 mb-1">
+                    <span class="font-bold text-slate-900 text-xs font-mono">#${issue.number}</span>
+                    <a href="${issue.html_url}" target="_blank" rel="noopener" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-0.5">
+                        Open on GitHub ↗
+                    </a>
+                </div>
+                <div class="text-slate-800 text-sm font-medium leading-snug mb-2">${issue.title}</div>
+                <div class="flex flex-wrap gap-1">${labelsHtml}</div>
+            `;
+            issuesContainer.appendChild(div);
+        });
+    }
+}
 </script>
 
 </body>
