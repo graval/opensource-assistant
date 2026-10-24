@@ -38,9 +38,13 @@
             </div>
         </div>
         <div class="flex items-center gap-3 text-xs text-slate-500 font-mono">
+            <div id="rateLimitBadge" class="hidden sm:flex items-center gap-1.5 bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200">
+                <span id="rateLimitDot" class="w-2 h-2 rounded-full bg-slate-400"></span>
+                <span id="rateLimitText">Checking rate limit...</span>
+            </div>
             <span class="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full border border-emerald-200">
                 <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                Local Ollama + GitHub
+                Local Ollama
             </span>
         </div>
     </div>
@@ -74,6 +78,31 @@
                     <span class="text-xs text-slate-500">(detailed architectural deep-dive)</span>
                 </label>
             </div>
+
+            <!-- GitHub Token (Optional) -->
+            <details class="text-xs text-slate-600 group">
+                <summary class="cursor-pointer text-indigo-600 hover:text-indigo-800 font-semibold select-none flex items-center justify-between py-1">
+                    <div class="flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                        <span>GitHub Token Authentication</span>
+                        <span class="text-[11px] text-slate-400 font-normal hidden sm:inline">- unlocks 5,000 requests/hr (avoids rate limits)</span>
+                    </div>
+                    <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-180 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <div class="mt-2.5 p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                    <div class="flex gap-2">
+                        <input type="password" id="githubToken"
+                            placeholder="ghp_... or gho_... (or leave blank to auto-detect from Git)"
+                            class="flex-1 px-3 py-2 text-xs font-mono border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
+                        <button type="button" id="saveTokenBtn" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium rounded-lg text-xs transition">
+                            Save
+                        </button>
+                    </div>
+                    <p class="text-[11px] text-slate-500 leading-normal">
+                        💡 <strong>Auto-detection enabled</strong>: If left blank, the assistant automatically uses credentials from your local Git Credential Manager or <code>GITHUB_TOKEN</code> environment variable.
+                    </p>
+                </div>
+            </details>
             <button type="submit" id="submitBtn"
                 class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3.5 px-6 rounded-xl transition duration-150 shadow-md hover:shadow-indigo-100 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                 <span>Analyze Repository</span>
@@ -374,11 +403,69 @@ const loading = document.getElementById('loading');
 const error = document.getElementById('error');
 const result = document.getElementById('result');
 const submitBtn = document.getElementById('submitBtn');
+const tokenInput = document.getElementById('githubToken');
+const saveTokenBtn = document.getElementById('saveTokenBtn');
+
+const apiBase = (window.location.protocol === 'file:')
+    ? 'http://localhost:8001'
+    : '';
+
+// Initialize stored token
+if (tokenInput) {
+    const saved = localStorage.getItem('github_token') || '';
+    tokenInput.value = saved;
+    if (saveTokenBtn) {
+        saveTokenBtn.addEventListener('click', () => {
+            const val = tokenInput.value.trim();
+            if (val) {
+                localStorage.setItem('github_token', val);
+            } else {
+                localStorage.removeItem('github_token');
+            }
+            checkRateLimit();
+        });
+    }
+}
+
+async function checkRateLimit() {
+    try {
+        const tok = (tokenInput ? tokenInput.value.trim() : '') || localStorage.getItem('github_token') || '';
+        const url = `${apiBase}/github/rate-limit` + (tok ? `?token=${encodeURIComponent(tok)}` : '');
+        const r = await fetch(url);
+        if (r.ok) {
+            const data = await r.json();
+            const badge = document.getElementById('rateLimitBadge');
+            const dot = document.getElementById('rateLimitDot');
+            const text = document.getElementById('rateLimitText');
+            if (badge && dot && text) {
+                badge.classList.remove('hidden');
+                if (data.authenticated) {
+                    dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+                    badge.className = 'hidden sm:flex items-center gap-1.5 bg-emerald-50 text-emerald-800 px-3 py-1 rounded-full border border-emerald-200';
+                    text.textContent = `🟢 ${data.remaining?.toLocaleString() || 0} req/hr`;
+                    badge.title = `Authenticated via ${data.source}. Limit: ${data.limit?.toLocaleString() || 5000} req/hr.`;
+                } else {
+                    const low = (data.remaining || 0) < 15;
+                    dot.className = `w-2 h-2 rounded-full ${low ? 'bg-rose-500' : 'bg-amber-500'}`;
+                    badge.className = `hidden sm:flex items-center gap-1.5 ${low ? 'bg-rose-50 text-rose-800 border-rose-200' : 'bg-amber-50 text-amber-800 border-amber-200'} px-3 py-1 rounded-full border`;
+                    text.textContent = `🟡 ${data.remaining || 0}/${data.limit || 60} req/hr`;
+                    badge.title = 'Add a GitHub token below or use Git Credential Manager to unlock 5,000 requests/hour.';
+                }
+            }
+        }
+    } catch (e) {
+        // silent fail
+    }
+}
+
+// Check rate limit on load
+checkRateLimit();
 
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const url = document.getElementById('repoUrl').value.trim();
     const expert = document.getElementById('expertMode').checked;
+    const token = (tokenInput ? tokenInput.value.trim() : '') || localStorage.getItem('github_token') || undefined;
 
     loading.classList.remove('hidden');
     error.classList.add('hidden');
@@ -386,13 +473,10 @@ form.addEventListener('submit', async (e) => {
     submitBtn.disabled = true;
 
     try {
-        const apiBase = (window.location.protocol === 'file:')
-            ? 'http://localhost:8001'
-            : '';
         const resp = await fetch(`${apiBase}/analyze`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ repo_url: url, expert: expert })
+            body: JSON.stringify({ repo_url: url, expert: expert, github_token: token })
         });
 
         if (!resp.ok) {
@@ -404,6 +488,7 @@ form.addEventListener('submit', async (e) => {
         renderResult(data);
         result.classList.remove('hidden');
         result.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        checkRateLimit();
     } catch (err) {
         document.getElementById('errorMsg').textContent = err.message;
         error.classList.remove('hidden');

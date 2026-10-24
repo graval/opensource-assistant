@@ -1,6 +1,7 @@
 import os
 import json
 import base64
+import subprocess
 import httpx
 from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException
@@ -25,9 +26,37 @@ OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:1b")
 
 
+def get_default_github_token() -> Optional[str]:
+    # 1. Environment variables
+    token = os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN")
+    if token and token.strip():
+        return token.strip()
+
+    # 2. Git Credential Manager auto-discovery
+    try:
+        p = subprocess.run(
+            ["git", "credential", "fill"],
+            input="protocol=https\nhost=github.com\n",
+            capture_output=True,
+            text=True,
+            timeout=3.0,
+            check=True
+        )
+        for line in p.stdout.splitlines():
+            if line.startswith("password="):
+                tok = line.split("=", 1)[1].strip()
+                if tok:
+                    return tok
+    except Exception:
+        pass
+
+    return None
+
+
 class RepoRequest(BaseModel):
     repo_url: str
     expert: Optional[bool] = False
+    github_token: Optional[str] = None
 
 
 def detect_branching_and_conventions(readme_text: str, contributing_text: str, default_branch: str = "main", repo_info: dict = None) -> dict:
@@ -185,19 +214,44 @@ def parse_github_url(url: str) -> tuple[str, str]:
     return parts[0], parts[1]
 
 
-async def fetch_github(path: str) -> Any:
-    async with httpx.AsyncClient(timeout=20.0) as client:
-        resp = await client.get(f"https://api.github.com/{path}", headers={"Accept": "application/vnd.github+json"})
+async def fetch_github(path: str, token: Optional[str] = None) -> Any:
+    tok = token or get_default_github_token()
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "OSS-Contributor-Assistant/1.0"
+    }
+    if tok:
+        headers["Authorization"] = f"Bearer {tok}"
+
+    async with httpx.AsyncClient(timeout=25.0) as client:
+        resp = await client.get(f"https://api.github.com/{path}", headers=headers)
         if resp.status_code == 404:
             raise HTTPException(status_code=404, detail=f"GitHub resource not found: {path}")
+        if resp.status_code == 403:
+            remaining = resp.headers.get("x-ratelimit-remaining")
+            reset_ts = resp.headers.get("x-ratelimit-reset")
+            if remaining == "0" or "rate limit" in resp.text.lower():
+                reset_msg = ""
+                if reset_ts:
+                    try:
+                        from datetime import datetime
+                        reset_dt = datetime.fromtimestamp(int(reset_ts), tz=timezone.utc)
+                        reset_msg = f" Rate limit resets at {reset_dt.strftime('%H:%M:%S UTC')}."
+                    except Exception:
+                        pass
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"GitHub API rate limit exceeded.{reset_msg} Authenticated requests provide 5,000 requests/hour."
+                )
+            raise HTTPException(status_code=403, detail=f"GitHub access forbidden: {resp.text}")
         if resp.status_code != 200:
             raise HTTPException(status_code=resp.status_code, detail=f"GitHub API error: {resp.text}")
         return resp.json()
 
 
-async def fetch_readme(owner: str, repo: str, default_branch: str = "main") -> dict:
+async def fetch_readme(owner: str, repo: str, default_branch: str = "main", token: Optional[str] = None) -> dict:
     try:
-        data = await fetch_github(f"repos/{owner}/{repo}/readme")
+        data = await fetch_github(f"repos/{owner}/{repo}/readme", token=token)
         content = base64.b64decode(data.get("content", "")).decode("utf-8", errors="ignore")
         return {
             "content": content,
@@ -210,7 +264,7 @@ async def fetch_readme(owner: str, repo: str, default_branch: str = "main") -> d
         }
 
 
-async def fetch_contributing(owner: str, repo: str, default_branch: str = "main") -> dict:
+async def fetch_contributing(owner: str, repo: str, default_branch: str = "main", token: Optional[str] = None) -> dict:
     candidates = [
         "CONTRIBUTING.md",
         ".github/CONTRIBUTING.md",
@@ -222,7 +276,7 @@ async def fetch_contributing(owner: str, repo: str, default_branch: str = "main"
     ]
     for path in candidates:
         try:
-            data = await fetch_github(f"repos/{owner}/{repo}/contents/{path}")
+            data = await fetch_github(f"repos/{owner}/{repo}/contents/{path}", token=token)
             if isinstance(data, dict) and data.get("content"):
                 content = base64.b64decode(data.get("content", "")).decode("utf-8", errors="ignore")
                 return {
@@ -239,17 +293,17 @@ async def fetch_contributing(owner: str, repo: str, default_branch: str = "main"
     }
 
 
-async def fetch_license(owner: str, repo: str) -> str:
+async def fetch_license(owner: str, repo: str, token: Optional[str] = None) -> str:
     try:
-        data = await fetch_github(f"repos/{owner}/{repo}/license")
+        data = await fetch_github(f"repos/{owner}/{repo}/license", token=token)
         return base64.b64decode(data.get("content", "")).decode("utf-8", errors="ignore")
     except Exception:
         return ""
 
 
-async def fetch_issues(owner: str, repo: str) -> list[dict]:
+async def fetch_issues(owner: str, repo: str, token: Optional[str] = None) -> list[dict]:
     try:
-        data = await fetch_github(f"repos/{owner}/{repo}/issues?state=open&per_page=25")
+        data = await fetch_github(f"repos/{owner}/{repo}/issues?state=open&per_page=25", token=token)
         if not isinstance(data, list):
             return []
         return [
@@ -267,9 +321,9 @@ async def fetch_issues(owner: str, repo: str) -> list[dict]:
         return []
 
 
-async def fetch_latest_commit(owner: str, repo: str, default_branch: str = "main") -> dict:
+async def fetch_latest_commit(owner: str, repo: str, default_branch: str = "main", token: Optional[str] = None) -> dict:
     try:
-        data = await fetch_github(f"repos/{owner}/{repo}/commits?per_page=1")
+        data = await fetch_github(f"repos/{owner}/{repo}/commits?per_page=1", token=token)
         if isinstance(data, list) and len(data) > 0:
             c = data[0]
             sha = c.get("sha", "")
@@ -293,8 +347,8 @@ async def fetch_latest_commit(owner: str, repo: str, default_branch: str = "main
     }
 
 
-async def fetch_repo_info(owner: str, repo: str) -> dict:
-    return await fetch_github(f"repos/{owner}/{repo}")
+async def fetch_repo_info(owner: str, repo: str, token: Optional[str] = None) -> dict:
+    return await fetch_github(f"repos/{owner}/{repo}", token=token)
 
 
 def evaluate_ai_policy(readme_text: str, contributing_text: str) -> dict:
@@ -475,17 +529,19 @@ async def analyze(req: RepoRequest):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+    token = req.github_token or get_default_github_token()
+
     # Fetch repo metadata first to retrieve default_branch
-    repo_info = await fetch_repo_info(owner, repo)
+    repo_info = await fetch_repo_info(owner, repo, token=token)
     default_branch = repo_info.get("default_branch") or "main"
 
     # Parallel fetch remaining assets
     readme_dict, contributing_dict, license_text, issues, latest_commit = await __import__("asyncio").gather(
-        fetch_readme(owner, repo, default_branch),
-        fetch_contributing(owner, repo, default_branch),
-        fetch_license(owner, repo),
-        fetch_issues(owner, repo),
-        fetch_latest_commit(owner, repo, default_branch),
+        fetch_readme(owner, repo, default_branch, token=token),
+        fetch_contributing(owner, repo, default_branch, token=token),
+        fetch_license(owner, repo, token=token),
+        fetch_issues(owner, repo, token=token),
+        fetch_latest_commit(owner, repo, default_branch, token=token),
     )
 
     user_level = "intermediate/expert" if req.expert else "entry"
@@ -539,6 +595,10 @@ async def analyze(req: RepoRequest):
         "easy_issue": easy_issue,
         "conventions": conventions,
         "contribution_steps": custom_guide,
+        "auth_status": {
+            "authenticated": bool(token),
+            "source": "Provided Token" if req.github_token else ("Git Credential Manager" if token else "Unauthenticated (60/hr)")
+        },
         "readme": readme_dict,
         "contributing": contributing_dict,
         "open_issues": issues,
@@ -587,6 +647,32 @@ async def get_cached(owner: str, repo: str):
         data["contributing"] = {"content": "", "html_url": f"https://github.com/{owner}/{repo}"}
 
     return data
+
+
+@app.get("/github/rate-limit")
+async def github_rate_limit(token: Optional[str] = None):
+    tok = token or get_default_github_token()
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "OSS-Contributor-Assistant/1.0"
+    }
+    if tok:
+        headers["Authorization"] = f"Bearer {tok}"
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.get("https://api.github.com/rate_limit", headers=headers)
+            if resp.status_code == 200:
+                data = resp.json().get("rate", {})
+                return {
+                    "authenticated": bool(tok),
+                    "limit": data.get("limit", 60),
+                    "remaining": data.get("remaining", 0),
+                    "reset": data.get("reset"),
+                    "source": "Custom Token" if token else ("Git Credential Manager / Env" if tok else "Unauthenticated (IP-based, 60/hr)")
+                }
+    except Exception as e:
+        return {"authenticated": bool(tok), "limit": 60, "remaining": 0, "error": str(e)}
+    return {"authenticated": bool(tok), "limit": 60, "remaining": 0}
 
 
 @app.get("/health")

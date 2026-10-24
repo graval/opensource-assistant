@@ -102,6 +102,7 @@ You can customize the application using environment variables:
 | `PORT` | `8001` | Port on which the FastAPI application and UI will listen |
 | `OLLAMA_HOST` | `http://localhost:11434` | URL of your local Ollama instance |
 | `OLLAMA_MODEL` | `llama3.2:1b` | Target Ollama model name (auto-detects if unset) |
+| `GITHUB_TOKEN` | *Auto-detected* | Optional GitHub token to unlock 5,000 requests/hr (auto-detected via Git Credential Manager or entered in UI) |
 
 ---
 
@@ -111,7 +112,8 @@ You can customize the application using environment variables:
 | :--- | :--- | :--- |
 | `GET` | `/` | Web UI (served via FastAPI static files) |
 | `GET` | `/health` | Health check endpoint returning `{"status": "ok"}` |
-| `POST` | `/analyze` | Analyze a repository (`{"repo_url": "https://github.com/owner/repo", "expert": false}`) |
+| `GET` | `/github/rate-limit` | Checks active rate limit and authentication status |
+| `POST` | `/analyze` | Analyze a repository (`{"repo_url": "https://github.com/owner/repo", "expert": false, "github_token": "optional"}`) |
 | `GET` | `/analyze/{owner}/{repo}` | Retrieve cached JSON analysis for a previously analyzed repository |
 
 ---
