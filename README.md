@@ -67,8 +67,8 @@ The codebase is structured following **SOLID principles** and standard design pa
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/<your-username>/oss-contributor-assistant.git
-cd oss-contributor-assistant
+git clone https://github.com/<your-username>/opensource-assistant.git
+cd opensource-assistant
 ```
 
 ### 2. Set up virtual environment & install dependencies
@@ -95,8 +95,8 @@ ollama pull llama3.2:1b
 
 ### 4. Start the application
 ```bash
-cd backend
-python app.py
+python backend/app.py
+# or: python -m uvicorn backend.app:app --host 127.0.0.1 --port 8001
 ```
 
 The application is now accessible at **[http://localhost:8001](http://localhost:8001)** (serving both the interactive web UI and API).
@@ -131,7 +131,7 @@ You can customize the application using environment variables:
 ## Project Structure
 
 ```
-oss-contributor-assistant/
+opensource-assistant/
 ├── backend/
 │   └── app.py            # FastAPI server, GitHub fetching, Ollama integration, static mount
 ├── frontend/

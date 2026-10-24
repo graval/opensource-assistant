@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSS Contributor Assistant — Project Demo Presentation</title>
+    <!-- Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Presentation Layout Styles */
+        body {
+            background-color: #030712;
+            color: #f3f4f6;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .slide {
+            display: none;
+            opacity: 0;
+            transform: scale(0.97) translateY(12px);
+            transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .slide.active {
+            display: flex;
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+
+        /* Glassmorphism Card Utilities */
+        .glass-card {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6), 0 0 30px -10px rgba(99, 102, 241, 0.15);
+        }
+
+        .glass-card-hover {
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .glass-card-hover:hover {
+            transform: translateY(-3px);
+            border-color: rgba(129, 140, 248, 0.35);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 35px -5px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Ambient Lighting Background */
+        .ambient-glow {
+            position: absolute;
+            width: 700px;
+            height: 700px;
+            border-radius: 50%;
+            filter: blur(140px);
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.18;
+        }
+
+        /* Custom Scrollbar for inner containers */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.4);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.8);
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between font-sans relative antialiased selection:bg-indigo-600 selection:text-white">
+
+    <!-- Ambient Glowing Orbs -->
+    <div class="ambient-glow bg-indigo-600 top-[-200px] left-[-200px]"></div>
+    <div class="ambient-glow bg-purple-600 bottom-[-200px] right-[-200px]"></div>
+    <div class="ambient-glow bg-emerald-600 top-[35%] left-[45%] w-[450px] h-[450px] opacity-10"></div>
+
+    <!-- Top Navigation & Presentation Header -->
+    <header class="relative z-30 h-16 border-b border-slate-800/80 bg-slate-950/70 backdrop-blur-md px-6 flex items-center justify-between">
+        <!-- Brand / Demo Indicator -->
+        <div class="flex items-center gap-3">
+            <a href="index.html" class="flex items-center gap-2.5 group transition" title="Go to Live Application">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-display font-extrabold text-base tracking-tight text-white group-hover:text-indigo-300 transition">OSS Contributor Assistant</span>
+                        <span class="text-[10px] font-mono uppercase tracking-wider bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 px-2 py-0.5 rounded-full font-bold">Demo Deck</span>
+                    </div>
+                    <span class="text-[11px] text-slate-400 block leading-none">Fast-Track Open Source Onboarding</span>
+                </div>
+            </a>
+        </div>
+
+        <!-- Slide Jump Pill Navigation -->
+        <nav class="hidden md:flex items-center gap-1.5 bg-slate-900/90 border border-slate-800 rounded-full p-1 shadow-inner font-mono text-xs" aria-label="Slide Navigation">
+            <button class="slide-nav-btn px-3 py-1 rounded-full text-slate-400 hover:text-white transition font-medium flex items-center gap-1.5" data-slide="0">
+                <span class="w-2 h-2 rounded-full bg-slate-600 indicator-dot"></span>
+                <span>01 Overview</span>
+            </button>
+            <button class="slide-nav-btn px-3 py-1 rounded-full text-slate-400 hover:text-white transition font-medium flex items-center gap-1.5" data-slide="1">
+                <span class="w-2 h-2 rounded-full bg-slate-600 indicator-dot"></span>
+                <span>02 The Problem</span>
+            </button>
+            <button class="slide-nav-btn px-3 py-1 rounded-full text-slate-400 hover:text-white transition font-medium flex items-center gap-1.5" data-slide="2">
+                <span class="w-2 h-2 rounded-full bg-slate-600 indicator-dot"></span>
+                <span>03 Architecture</span>
+            </button>
+            <button class="slide-nav-btn px-3 py-1 rounded-full text-slate-400 hover:text-white transition font-medium flex items-center gap-1.5" data-slide="3">
+                <span class="w-2 h-2 rounded-full bg-slate-600 indicator-dot"></span>
+                <span>04 Key Features</span>
+            </button>
+            <button class="slide-nav-btn px-3 py-1 rounded-full text-slate-400 hover:text-white transition font-medium flex items-center gap-1.5" data-slide="4">
+                <span class="w-2 h-2 rounded-full bg-slate-600 indicator-dot"></span>
+                <span>05 Live Demo</span>
+            </button>
+        </nav>
+
+        <!-- Right Action Controls -->
+        <div class="flex items-center gap-2.5 font-mono text-xs">
+            <!-- Keyboard shortcut hint -->
+            <div class="hidden lg:flex items-center gap-1 text-[11px] text-slate-400 bg-slate-900/70 border border-slate-800 px-2.5 py-1 rounded-lg">
+                <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700 text-[10px]">←</kbd>
+                <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700 text-[10px]">→</kbd>
+                <span class="text-slate-500 ml-1">Navigate</span>
+            </div>
+
+            <!-- Speaker Notes Toggle -->
+            <button id="toggleNotesBtn" type="button" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition flex items-center gap-1.5 active:scale-95" title="Toggle Presenter Speaker Notes (Key: N)">
+                <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <span class="hidden sm:inline">Notes</span>
+            </button>
+
+            <!-- Fullscreen Button -->
+            <button id="fullscreenBtn" type="button" class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition active:scale-95" title="Toggle Fullscreen (Key: F)">
+                <svg id="fullscreenIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+            </button>
+
+            <!-- Launch Live App CTA -->
+            <a href="index.html" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold transition shadow-md shadow-indigo-600/30 flex items-center gap-1.5 active:scale-95">
+                <span>Live App</span>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+        </div>
+    </header>
+
+    <!-- Slide Progress Bar -->
+    <div class="w-full bg-slate-900/60 h-1 relative z-20 overflow-hidden">
+        <div id="progressBar" class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 h-full w-[20%] transition-all duration-300"></div>
+    </div>
+
+    <!-- Main Presentation Viewport -->
+    <main class="relative z-10 flex-1 w-full max-w-7xl mx-auto px-6 py-6 overflow-y-auto flex items-center justify-center">
+
+        <!-- ===================================================================
+             SLIDE 1: Title & Overview (The Hook)
+             =================================================================== -->
+        <section class="slide active flex-col justify-center w-full max-w-5xl" data-title="Overview & Mission">
+            <div class="text-center mb-8">
+                <!-- Tag Pills -->
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-mono font-medium mb-5 animate-pulse-slow">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span>AI-Powered Contributor Copilot • Hacktoberfest Ready</span>
+                </div>
+
+                <!-- Main Headline -->
+                <h1 class="text-4xl sm:text-6xl font-display font-black text-white tracking-tight mb-4 leading-tight">
+                    OSS Contributor <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400">Assistant</span>
+                </h1>
+                <p class="text-lg sm:text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed font-light">
+                    Transform any public GitHub repository into a step-by-step, actionable contribution flight plan with local LLM intelligence.
+                </p>
+            </div>
+
+            <!-- 4 Pillar Feature Badges -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div class="glass-card glass-card-hover rounded-2xl p-5 border-l-4 border-l-indigo-500">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-xl mb-3 font-bold">⚡</div>
+                    <h3 class="font-display font-bold text-white text-base mb-1">Zero-Config Ingestion</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">Paste any GitHub URL. Synthesizes README, CONTRIBUTING, license & issues instantly.</p>
+                </div>
+
+                <div class="glass-card glass-card-hover rounded-2xl p-5 border-l-4 border-l-purple-500">
+                    <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-xl mb-3 font-bold">🌿</div>
+                    <h3 class="font-display font-bold text-white text-base mb-1">Convention Detection</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">Auto-extracts target base branch, branch naming pattern, commit style & test suite.</p>
+                </div>
+
+                <div class="glass-card glass-card-hover rounded-2xl p-5 border-l-4 border-l-emerald-500">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xl mb-3 font-bold">🛡️</div>
+                    <h3 class="font-display font-bold text-white text-base mb-1">AI Policy Checker</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">Classifies repository AI-generated code policy (Allowed, Limited, Banned) with rationale.</p>
+                </div>
+
+                <div class="glass-card glass-card-hover rounded-2xl p-5 border-l-4 border-l-pink-500">
+                    <div class="w-10 h-10 rounded-xl bg-pink-500/10 text-pink-400 flex items-center justify-center text-xl mb-3 font-bold">🔒</div>
+                    <h3 class="font-display font-bold text-white text-base mb-1">Local Ollama Inference</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">Multi-model dropdown (gemma4:12b default, llama3.2:1b). $0 cloud fees, 100% privacy.</p>
+                </div>
+            </div>
+
+            <!-- Quick Meta Footer -->
+            <div class="flex flex-wrap items-center justify-center gap-6 text-xs font-mono text-slate-400 pt-2 border-t border-slate-800/60">
+                <span class="flex items-center gap-1.5"><span class="text-indigo-400">Stack:</span> FastAPI • Tailwind CSS • Ollama</span>
+                <span class="flex items-center gap-1.5"><span class="text-emerald-400">License:</span> MIT Open Source</span>
+                <span class="flex items-center gap-1.5"><span class="text-purple-400">Rate Limits:</span> Up to 5,000 req/hr (Git Credential Auto-Auth)</span>
+            </div>
+        </section>
+
+        <!-- ===================================================================
+             SLIDE 2: The Problem (The "Why")
+             =================================================================== -->
+        <section class="slide flex-col justify-center w-full max-w-5xl" data-title="The Problem">
+            <div class="mb-6">
+                <span class="text-xs font-mono font-bold uppercase tracking-widest text-rose-400 bg-rose-500/10 border border-rose-500/20 px-3 py-1 rounded-full">The Problem</span>
+                <h2 class="text-3xl sm:text-4xl font-display font-extrabold text-white tracking-tight mt-3 mb-2">
+                    Why Do 60%+ of First-Time Open-Source Contributors Drop Out?
+                </h2>
+                <p class="text-slate-400 text-sm max-w-3xl">
+                    Contributing to unfamiliar codebases is riddled with unwritten rules, fragmented documentation, and high friction.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+                <!-- Friction 1 -->
+                <div class="glass-card rounded-2xl p-6 border-t-2 border-t-rose-500 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-2xl font-bold">🚧</span>
+                            <span class="text-[10px] font-mono font-bold text-rose-400 uppercase bg-rose-500/10 px-2.5 py-0.5 rounded-full border border-rose-500/20">Friction #1</span>
+                        </div>
+                        <h3 class="font-display font-bold text-white text-lg mb-2">The "Hidden Rules" Maze</h3>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                            Should PRs target <code class="font-mono text-rose-300 bg-rose-950/40 px-1 py-0.5 rounded">main</code> or <code class="font-mono text-rose-300 bg-rose-950/40 px-1 py-0.5 rounded">dev</code>? What branch naming pattern is mandated? How do you run the test suite?
+                        </p>
+                    </div>
+                    <div class="text-[11px] font-mono text-rose-300/80 bg-rose-950/30 p-2.5 rounded-xl border border-rose-900/50">
+                        Result: PRs rejected by maintainers over branch or format violations.
+                    </div>
+                </div>
+
+                <!-- Friction 2 -->
+                <div class="glass-card rounded-2xl p-6 border-t-2 border-t-amber-500 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-2xl font-bold">⚖️</span>
+                            <span class="text-[10px] font-mono font-bold text-amber-400 uppercase bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">Friction #2</span>
+                        </div>
+                        <h3 class="font-display font-bold text-white text-lg mb-2">The AI Policy Minefield</h3>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                            Some projects ban LLM code entirely; others require explicit PR disclaimers or permit it only for test generation. Unsuspecting devs get flagged or banned.
+                        </p>
+                    </div>
+                    <div class="text-[11px] font-mono text-amber-300/80 bg-amber-950/30 p-2.5 rounded-xl border border-amber-900/50">
+                        Result: Contributor hesitation and wasted development effort.
+                    </div>
+                </div>
+
+                <!-- Friction 3 -->
+                <div class="glass-card rounded-2xl p-6 border-t-2 border-t-indigo-500 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-2xl font-bold">📦</span>
+                            <span class="text-[10px] font-mono font-bold text-indigo-400 uppercase bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">Friction #3</span>
+                        </div>
+                        <h3 class="font-display font-bold text-white text-lg mb-2">Issue Overwhelm & Stagnation</h3>
+                        <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                            Repositories have hundreds of issues. "Good first issue" tags are often outdated, claimed, or deceptively complex architectural refactors.
+                        </p>
+                    </div>
+                    <div class="text-[11px] font-mono text-indigo-300/80 bg-indigo-950/30 p-2.5 rounded-xl border border-indigo-900/50">
+                        Result: Paralysis of choice; newcomers don't know where to start.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Value Proposition Statement -->
+            <div class="glass-card rounded-2xl p-5 border border-indigo-500/30 bg-gradient-to-r from-indigo-950/50 via-slate-900 to-purple-950/50 flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">💡</span>
+                    <div>
+                        <div class="font-display font-bold text-white text-sm">The Solution: Intelligent Signal Synthesis</div>
+                        <div class="text-xs text-slate-300">OSS Contributor Assistant parses repo signals automatically and hands contributors a tailored, 6-step flight plan.</div>
+                    </div>
+                </div>
+                <span class="text-xs font-mono font-bold text-indigo-400 bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/30 shrink-0 hidden sm:inline-block">Turnkey Flight Plan</span>
+            </div>
+        </section>
+
+        <!-- ===================================================================
+             SLIDE 3: Architecture & Signal Engine (The "How")
+             =================================================================== -->
+        <section class="slide flex-col justify-center w-full max-w-5xl" data-title="System Architecture">
+            <div class="mb-5">
+                <span class="text-xs font-mono font-bold uppercase tracking-widest text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-full">Architecture</span>
+                <h2 class="text-3xl sm:text-4xl font-display font-extrabold text-white tracking-tight mt-3 mb-1">
+                    Lightweight, Decoupled 3-Tier Architecture
+                </h2>
+                <p class="text-slate-400 text-xs">
+                    Designed according to SOLID principles with fast local caching and zero cloud dependencies.
+                </p>
+            </div>
+
+            <!-- 3-Tier Visual Flow -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+                <!-- Tier 1: Client Layer -->
+                <div class="glass-card rounded-2xl p-5 border border-slate-800">
+                    <div class="flex items-center gap-2 mb-3 pb-2 border-b border-slate-800">
+                        <span class="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-mono font-bold text-xs">1</span>
+                        <h3 class="font-display font-bold text-white text-sm">Reactive Client Layer</h3>
+                    </div>
+                    <ul class="text-xs text-slate-300 space-y-2 font-light">
+                        <li class="flex items-start gap-1.5">
+                            <span class="text-indigo-400 font-bold">•</span>
+                            <span>Single-page app in <code class="font-mono text-indigo-300 text-[11px]">frontend/index.html</code></span>
+                        </li>
+                        <li class="flex items-start gap-1.5">
+                            <span class="text-indigo-400 font-bold">•</span>
+                            <span>Dynamic dark mode & smooth micro-animations</span>
+                        </li>
+                        <li class="flex items-start gap-1.5">
+                            <span class="text-indigo-400 font-bold">•</span>
+                            <span>Inference Model Dropdown with live badge sync</span>
+                        </li>
+                        <li class="flex items-start gap-1.5">
+                            <span class="text-indigo-400 font-bold">•</span>
+                            <span>1-click terminal command copy buttons</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Tier 2: FastAPI Core -->
+                <div class="glass-card rounded-2xl p-5 border border-purple-500/30 bg-purple-950/10">
+                    <div class="flex items-center gap-2 mb-3 pb-2 border-b border-purple-500/20">
+                        <span class="w-6 h-6 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center font-mono font-bold text-xs">2</span>
+                        <h3 class="font-display font-bold text-white text-sm">FastAPI Orchestration Core</h3>
+                    </div>
+                    <ul class="text-xs text-slate-300 space-y-2 font-light">
+                        <li class="flex items-start gap-1.5">
+                            <span class="text-purple-400 font-bold">•</span>
+                            <span>Asynchronous REST endpoints (<code class="font-mono text-purple-300 text-[11px]">/analyze</code>)</span>
+                        </li>
+                        <li class="flex items-start gap-1.5">
+                            <span class="text-purple-400 font-bold">•</span>
+                            <span>3-Tier GitHub Credential discovery (5,000 req/hr)</span>
+                        </li>
+                        <li class="flex items-start gap-1.5">
+                            <span class="text-purple-400 font-bold">•</span>
+                            <span>Convention Engine (target branch, regex rules)</span>
+                        </li>
+                        <li class="flex items-start gap-1.5">
+                            <span class="text-purple-400 font-bold">•</span>
+                            <span>Local JSON persistence in <code class="font-mono text-purple-300 text-[11px]">data/*.json</code></span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Tier 3: Local LLM Engine -->
+                <div class="glass-card rounded-2xl p-5 border border-emerald-500/30 bg-emerald-950/10">
+                    <div class="flex items-center gap-2 mb-3 pb-2 border-b border-emerald-500/20">
+                        <span class="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-mono font-bold text-xs">3</span>
+                        <h3 class="font-display font-bold text-white text-sm">Local Ollama Inference</h3>
+                    </div>
+                    <ul class="text-xs text-slate-300 space-y-2 font-light">
+                        <li class="flex items-start gap-1.5">
+                            <span class="text-emerald-400 font-bold">•</span>
+                            <span>Private LLM running on <code class="font-mono text-emerald-300 text-[11px]">localhost:11434</code></span>
+                        </li>
+                        <li class="flex items-start gap-1.5">
+                            <span class="text-emerald-400 font-bold">•</span>
+                            <span>Default: <code class="font-mono text-emerald-300 text-[11px]">gemma4:12b</code></span>
+                        </li>
+                        <li class="flex items-start gap-1.5">
+                            <span class="text-emerald-400 font-bold">•</span>
+                            <span>Alternative: <code class="font-mono text-emerald-300 text-[11px]">llama3.2:1b</code></span>
+                        </li>
+                        <li class="flex items-start gap-1.5">
+                            <span class="text-emerald-400 font-bold">•</span>
+                            <span>Context-aware roadmap synthesis & guidance</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Sequence / Data Pipeline Bar -->
+            <div class="glass-card rounded-xl p-3 border border-slate-800 text-[11px] font-mono flex flex-wrap items-center justify-between gap-2">
+                <span class="text-slate-400">Pipeline Flow:</span>
+                <span class="text-indigo-400">GitHub API</span>
+                <span class="text-slate-600">→</span>
+                <span class="text-purple-400">Signal Extraction</span>
+                <span class="text-slate-600">→</span>
+                <span class="text-pink-400">Prompt Synthesizer</span>
+                <span class="text-slate-600">→</span>
+                <span class="text-emerald-400">Ollama Inference</span>
+                <span class="text-slate-600">→</span>
+                <span class="text-amber-400">JSON Cache</span>
+                <span class="text-slate-600">→</span>
+                <span class="text-cyan-400">Interactive SPA</span>
+            </div>
+        </section>
+
+        <!-- ===================================================================
+             SLIDE 4: Key Features & Technical Highlights (The "What")
+             =================================================================== -->
+        <section class="slide flex-col justify-center w-full max-w-5xl" data-title="Key Features">
+            <div class="mb-5">
+                <span class="text-xs font-mono font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">Core Features</span>
+                <h2 class="text-3xl sm:text-4xl font-display font-extrabold text-white tracking-tight mt-3 mb-1">
+                    Built for Frictionless Developer Workflows
+                </h2>
+                <p class="text-slate-400 text-xs">
+                    Comprehensive intelligence cards designed specifically for developer ease.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+                <!-- Feature 1: Inference Model Selection -->
+                <div class="glass-card glass-card-hover rounded-2xl p-5 border border-indigo-500/20">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-sm font-bold">🤖</span>
+                            <h3 class="font-display font-bold text-white text-base">Inference Model Dropdown</h3>
+                        </div>
+                        <span class="text-[10px] font-mono text-indigo-400 bg-indigo-950/60 px-2.5 py-0.5 rounded-full border border-indigo-800">New Feature</span>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                        Switch seamlessly between <code class="font-mono text-indigo-300">gemma4:12b</code> (Default) and <code class="font-mono text-indigo-300">llama3.2:1b</code>. Updates the navbar indicator and dynamically routes inference through FastAPI to Ollama.
+                    </p>
+                    <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 flex items-center justify-between">
+                        <span>Active Model:</span>
+                        <span class="font-bold text-emerald-400">gemma4:12b (Default)</span>
+                    </div>
+                </div>
+
+                <!-- Feature 2: Branch & Naming Conventions -->
+                <div class="glass-card glass-card-hover rounded-2xl p-5 border border-purple-500/20">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-7 h-7 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center text-sm font-bold">🌿</span>
+                            <h3 class="font-display font-bold text-white text-base">Conventions Quick View</h3>
+                        </div>
+                        <span class="text-[10px] font-mono text-purple-400 bg-purple-950/60 px-2.5 py-0.5 rounded-full border border-purple-800">1-Click Copy</span>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                        Instantly displays the repository's target base branch, branch naming template (e.g. <code class="font-mono text-purple-300">fix/&lt;issue&gt;-&lt;name&gt;</code>), commit convention, and testing command.
+                    </p>
+                    <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 flex items-center justify-between">
+                        <span>Branch Command:</span>
+                        <code class="text-emerald-400">$ git checkout -b fix/101-docs</code>
+                    </div>
+                </div>
+
+                <!-- Feature 3: Actionable 6-Step Guide -->
+                <div class="glass-card glass-card-hover rounded-2xl p-5 border border-emerald-500/20">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm font-bold">📋</span>
+                            <h3 class="font-display font-bold text-white text-base">Actionable 6-Step Guide</h3>
+                        </div>
+                        <span class="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-800">Terminal Ready</span>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                        Every step (Fork, Branch, Test, Capture Evidence, PR, Review) is equipped with dedicated terminal commands in fixed-width font and instant clipboard copy buttons.
+                    </p>
+                    <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 flex items-center justify-between">
+                        <span>Test Command:</span>
+                        <code class="text-emerald-400">$ pytest</code>
+                    </div>
+                </div>
+
+                <!-- Feature 4: AI Code Policy & Easy Issue -->
+                <div class="glass-card glass-card-hover rounded-2xl p-5 border border-pink-500/20">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-7 h-7 rounded-lg bg-pink-500/20 text-pink-400 flex items-center justify-center text-sm font-bold">🛡️</span>
+                            <h3 class="font-display font-bold text-white text-base">AI Policy & Beginner Issue</h3>
+                        </div>
+                        <span class="text-[10px] font-mono text-pink-400 bg-pink-950/60 px-2.5 py-0.5 rounded-full border border-pink-800">Safe Coding</span>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                        Evaluates upstream contributor rules to provide a clear YES / LIMITED / NO policy badge. Curates the single best open beginner issue with entry rationale.
+                    </p>
+                    <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 flex items-center justify-between">
+                        <span>AI Policy Status:</span>
+                        <span class="font-bold text-emerald-400">ALLOWED (with tests)</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================================================================
+             SLIDE 5: Live Demo & Impact (The "Demo")
+             =================================================================== -->
+        <section class="slide flex-col justify-center w-full max-w-5xl" data-title="Live Demo & Vision">
+            <div class="text-center mb-6">
+                <span class="text-xs font-mono font-bold uppercase tracking-widest text-purple-400 bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-full">Project Demo</span>
+                <h2 class="text-3xl sm:text-5xl font-display font-extrabold text-white tracking-tight mt-3 mb-2">
+                    Ready for Live Demonstration
+                </h2>
+                <p class="text-slate-400 text-sm max-w-2xl mx-auto">
+                    Experience real-time repository ingestion, model selection, and onboarding roadmap synthesis.
+                </p>
+            </div>
+
+            <!-- Demo Script Checklist -->
+            <div class="glass-card rounded-2xl p-6 border border-indigo-500/30 max-w-3xl mx-auto mb-6">
+                <h3 class="font-display font-bold text-white text-base mb-4 flex items-center gap-2">
+                    <span class="text-indigo-400">▶</span>
+                    <span>Live Demonstration Script (4 Key Steps):</span>
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
+                    <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800 flex items-start gap-2.5">
+                        <span class="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">1</span>
+                        <div>
+                            <strong class="text-white block font-sans">Open App Interface</strong>
+                            <span class="text-slate-400 text-[11px]">Navigate to http://localhost:8001 with dark mode</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800 flex items-start gap-2.5">
+                        <span class="w-5 h-5 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">2</span>
+                        <div>
+                            <strong class="text-white block font-sans">Select Inference Model</strong>
+                            <span class="text-slate-400 text-[11px]">Pick gemma4:12b or llama3.2:1b from dropdown</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800 flex items-start gap-2.5">
+                        <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">3</span>
+                        <div>
+                            <strong class="text-white block font-sans">Quick-Try a Repository</strong>
+                            <span class="text-slate-400 text-[11px]">Click 'pallets/flask' or enter custom GitHub URL</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950/70 p-3 rounded-xl border border-slate-800 flex items-start gap-2.5">
+                        <span class="w-5 h-5 rounded-full bg-pink-500/20 text-pink-400 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">4</span>
+                        <div>
+                            <strong class="text-white block font-sans">Explore Guidance & Copy</strong>
+                            <span class="text-slate-400 text-[11px]">Test 1-click code copying & convention indicators</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Call-to-action Action Buttons -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="index.html" class="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-display font-bold text-base transition-all duration-200 shadow-xl shadow-indigo-600/30 hover:scale-105 active:scale-95 flex items-center justify-center gap-2">
+                    <span>🚀 Launch Live Demo Application</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                </a>
+                <button type="button" onclick="goToSlide(0)" class="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 font-mono text-xs transition active:scale-95">
+                    ↺ Restart Presentation
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Presentation Control Bar -->
+    <footer class="relative z-30 h-16 border-t border-slate-800/80 bg-slate-950/80 backdrop-blur-md px-6 flex items-center justify-between font-mono text-xs">
+        <!-- Slide Indicator / Name -->
+        <div class="flex items-center gap-3">
+            <span id="slideCounter" class="font-bold text-slate-200 bg-slate-900 px-3 py-1 rounded-lg border border-slate-800">
+                01 / 05
+            </span>
+            <span id="currentSlideTitle" class="text-slate-400 hidden sm:inline">Overview & Mission</span>
+        </div>
+
+        <!-- Central Quick Navigation Buttons -->
+        <div class="flex items-center gap-2">
+            <button id="prevBtn" type="button" class="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 transition active:scale-95 flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                <span class="hidden sm:inline">Prev</span>
+            </button>
+
+            <!-- Auto-play Toggle -->
+            <button id="autoPlayBtn" type="button" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-indigo-400 border border-slate-800 transition flex items-center gap-1" title="Toggle Auto-Play (12s interval)">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span id="autoPlayText">Auto</span>
+            </button>
+
+            <button id="nextBtn" type="button" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition active:scale-95 flex items-center gap-1.5 shadow-md shadow-indigo-600/20 disabled:opacity-40 disabled:cursor-not-allowed">
+                <span class="hidden sm:inline">Next</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+        </div>
+
+        <!-- Help / Jump hint -->
+        <div class="text-[11px] text-slate-500 hidden md:block">
+            Use <kbd class="px-1 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">Space</kbd> or <kbd class="px-1 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">Arrows</kbd> to step
+        </div>
+    </footer>
+
+    <!-- Speaker Notes Collapsible Drawer -->
+    <div id="speakerNotesDrawer" class="hidden fixed bottom-16 left-6 right-6 z-40 bg-slate-900/95 backdrop-blur-xl border border-amber-500/30 rounded-2xl p-5 shadow-2xl transition-all duration-300">
+        <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-800">
+            <div class="flex items-center gap-2">
+                <span class="text-amber-400 text-base">📝</span>
+                <h4 class="font-display font-bold text-amber-300 text-sm">Presenter Talking Points</h4>
+                <span class="text-[10px] font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded">Slide <span id="notesSlideNumber">1</span> of 5</span>
+            </div>
+            <button id="closeNotesBtn" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div id="notesContent" class="text-xs text-slate-200 leading-relaxed font-sans space-y-1">
+            <!-- Dynamically populated based on active slide -->
+        </div>
+    </div>
+
+    <!-- Presentation Engine JavaScript -->
+    <script>
+        // Speaker notes repository for all 5 slides
+        const speakerNotes = [
+            `<strong>Slide 1 Talking Points:</strong><br/>
+             &bull; Open by greeting the audience and introducing the project: "OSS Contributor Assistant is an intelligent developer onboarding copilot designed to eliminate the initial friction of contributing to open-source repositories."<br/>
+             &bull; Highlight that it runs completely zero-config with local Ollama inference, so developers and enterprises don't need cloud API keys or worry about privacy leaks.<br/>
+             &bull; Mention Hacktoberfest and the open-source community mission: reducing PR churn and helping newcomers land their first contribution with confidence.`,
+
+            `<strong>Slide 2 Talking Points:</strong><br/>
+             &bull; Address the core problem: Over 60% of aspiring contributors drop out before submitting their first PR.<br/>
+             &bull; Explain Friction #1 (Hidden Rules): Repository guidelines are often buried across multiple READMEs, Wikis, and CONTRIBUTING.md files. Deviating from base branch rules or commit formatting causes immediate PR rejection.<br/>
+             &bull; Explain Friction #2 (AI Policies): In the era of GenAI, repositories are setting strict rules regarding AI-written code. Violating them can get contributors flagged.<br/>
+             &bull; Explain Friction #3 (Issue Stagnation): Issue trackers have hundreds of stale tickets, overwhelming newcomers.`,
+
+            `<strong>Slide 3 Talking Points:</strong><br/>
+             &bull; Walk through the 3-tier architecture: Lightweight, decoupled, and strictly adhering to SOLID principles.<br/>
+             &bull; Tier 1: Zero-build single-page web app with responsive dark mode and 1-click terminal command copying.<br/>
+             &bull; Tier 2: FastAPI backend serving asynchronous endpoints, featuring 3-tier GitHub authentication (supporting up to 5,000 requests/hr via Git Credential Manager) and local JSON caching.<br/>
+             &bull; Tier 3: Local Ollama daemon running on localhost:11434 with zero token cost, supporting model switching on the fly.`,
+
+            `<strong>Slide 4 Talking Points:</strong><br/>
+             &bull; Showcase the standout feature set built for real developer workflows:<br/>
+             &bull; Feature 1: The new Inference Model Dropdown allowing users to pick between <code>gemma4:12b</code> and <code>llama3.2:1b</code> with real-time UI status sync.<br/>
+             &bull; Feature 2: Branch & Naming Conventions Quick View with 1-click copy buttons for branch and testing commands.<br/>
+             &bull; Feature 3: The 6-step contribution roadmap giving developers terminal-ready commands in fixed-width font.<br/>
+             &bull; Feature 4: Automatic AI Code Policy detection classifying upstream rules into Yes, Limited, or No.`,
+
+            `<strong>Slide 5 Talking Points:</strong><br/>
+             &bull; Transition into the live demo: "Now let's see OSS Contributor Assistant in action!"<br/>
+             &bull; Outline the 4 steps: Open the app, select gemma4:12b, analyze pallets/flask, and inspect the generated 6-step flight plan.<br/>
+             &bull; Emphasize the impact: drastic reduction in onboarding time, elimination of formatting errors, and complete local privacy.<br/>
+             &bull; Click 'Launch Live Demo Application' to smoothly hand off to the live system.`
+        ];
+
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        let currentSlide = 0;
+        let autoPlayTimer = null;
+
+        const progressBar = document.getElementById('progressBar');
+        const slideCounter = document.getElementById('slideCounter');
+        const currentSlideTitle = document.getElementById('currentSlideTitle');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const autoPlayBtn = document.getElementById('autoPlayBtn');
+        const autoPlayText = document.getElementById('autoPlayText');
+        const navButtons = document.querySelectorAll('.slide-nav-btn');
+        const speakerNotesDrawer = document.getElementById('speakerNotesDrawer');
+        const notesContent = document.getElementById('notesContent');
+        const notesSlideNumber = document.getElementById('notesSlideNumber');
+        const toggleNotesBtn = document.getElementById('toggleNotesBtn');
+        const closeNotesBtn = document.getElementById('closeNotesBtn');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+        function updateSlideUI() {
+            // Activate current slide
+            slides.forEach((slide, idx) => {
+                if (idx === currentSlide) {
+                    slide.classList.add('active');
+                } else {
+                    slide.classList.remove('active');
+                }
+            });
+
+            // Update Progress Bar
+            const progressPercent = ((currentSlide + 1) / totalSlides) * 100;
+            progressBar.style.width = `${progressPercent}%`;
+
+            // Update Counter & Title
+            const paddedCurrent = String(currentSlide + 1).padStart(2, '0');
+            const paddedTotal = String(totalSlides).padStart(2, '0');
+            slideCounter.textContent = `${paddedCurrent} / ${paddedTotal}`;
+            currentSlideTitle.textContent = slides[currentSlide].getAttribute('data-title') || '';
+
+            // Update Button States
+            prevBtn.disabled = (currentSlide === 0);
+            nextBtn.disabled = (currentSlide === totalSlides - 1);
+
+            // Update Nav Pill Buttons
+            navButtons.forEach((btn, idx) => {
+                const dot = btn.querySelector('.indicator-dot');
+                if (idx === currentSlide) {
+                    btn.classList.add('bg-indigo-600', 'text-white');
+                    btn.classList.remove('text-slate-400');
+                    if (dot) dot.classList.replace('bg-slate-600', 'bg-white');
+                } else {
+                    btn.classList.remove('bg-indigo-600', 'text-white');
+                    btn.classList.add('text-slate-400');
+                    if (dot) dot.classList.replace('bg-white', 'bg-slate-600');
+                }
+            });
+
+            // Update Speaker Notes Content
+            notesContent.innerHTML = speakerNotes[currentSlide] || 'No notes for this slide.';
+            notesSlideNumber.textContent = currentSlide + 1;
+        }
+
+        function goToSlide(index) {
+            if (index >= 0 && index < totalSlides) {
+                currentSlide = index;
+                updateSlideUI();
+            }
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                goToSlide(currentSlide + 1);
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                goToSlide(currentSlide - 1);
+            }
+        }
+
+        // Event Listeners for Nav Controls
+        nextBtn.addEventListener('click', nextSlide);
+        prevBtn.addEventListener('click', prevSlide);
+
+        navButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const slideIndex = parseInt(btn.getAttribute('data-slide'), 10);
+                goToSlide(slideIndex);
+            });
+        });
+
+        // Speaker Notes Toggle
+        toggleNotesBtn.addEventListener('click', () => {
+            speakerNotesDrawer.classList.toggle('hidden');
+        });
+        closeNotesBtn.addEventListener('click', () => {
+            speakerNotesDrawer.classList.add('hidden');
+        });
+
+        // Fullscreen Toggle
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                }
+            }
+        });
+
+        // Auto-play Toggle
+        autoPlayBtn.addEventListener('click', () => {
+            if (autoPlayTimer) {
+                clearInterval(autoPlayTimer);
+                autoPlayTimer = null;
+                autoPlayBtn.classList.remove('text-emerald-400', 'border-emerald-500/50');
+                autoPlayText.textContent = 'Auto';
+            } else {
+                autoPlayTimer = setInterval(() => {
+                    if (currentSlide < totalSlides - 1) {
+                        nextSlide();
+                    } else {
+                        goToSlide(0);
+                    }
+                }, 12000);
+                autoPlayBtn.classList.add('text-emerald-400', 'border-emerald-500/50');
+                autoPlayText.textContent = 'Playing';
+            }
+        });
+
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            switch(e.key) {
+                case 'ArrowRight':
+                case 'PageDown':
+                case ' ':
+                    e.preventDefault();
+                    nextSlide();
+                    break;
+                case 'ArrowLeft':
+                case 'PageUp':
+                    e.preventDefault();
+                    prevSlide();
+                    break;
+                case 'Home':
+                    e.preventDefault();
+                    goToSlide(0);
+                    break;
+                case 'End':
+                    e.preventDefault();
+                    goToSlide(totalSlides - 1);
+                    break;
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                    goToSlide(parseInt(e.key, 10) - 1);
+                    break;
+                case 'f':
+                case 'F':
+                    fullscreenBtn.click();
+                    break;
+                case 'n':
+                case 'N':
+                    toggleNotesBtn.click();
+                    break;
+            }
+        });
+
+        // Touch Swipe Navigation for mobile & touchscreens
+        let touchStartX = 0;
+        let touchEndX = 0;
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        document.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            if (touchStartX - touchEndX > 50) nextSlide();
+            if (touchEndX - touchStartX > 50) prevSlide();
+        }, { passive: true });
+
+        // Initialize presentation on load
+        updateSlideUI();
+    </script>
+</body>
+</html>
