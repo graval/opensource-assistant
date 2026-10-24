@@ -8,11 +8,15 @@ Paste any public GitHub repository URL, and the assistant fetches the repository
 
 ## Screenshots
 
-### 1. Interactive Web Interface & Live Rate Limit Tracker
-![OSS Contributor Assistant Homepage](docs/images/ui-homepage.png)
+### 1. Interactive Web Interface & Live Rate Limit Tracker (Light & Dark Mode)
+![OSS Contributor Assistant Homepage - Light Theme](docs/images/ui-homepage.png)
+![OSS Contributor Assistant Homepage - Dark Theme](docs/images/dark-homepage.png)
 
 ### 2. Comprehensive Repository Analysis & Conventions Quick View
-![Repository Analysis Results](docs/images/ui-analysis-result.png)
+![Repository Analysis Results](docs/images/dark-analysis-result.png)
+
+### 3. Dynamic Model Auto-Detection & Selection
+![Dynamic Ollama Model Selection](docs/images/model-dropdown-verified.png)
 
 ---
 
