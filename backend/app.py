@@ -22,8 +22,9 @@ app.add_middleware(
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 
+DEFAULT_MODEL = "gemma4:12b"
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:1b")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", DEFAULT_MODEL)
 
 
 def get_default_github_token() -> Optional[str]:
@@ -57,6 +58,7 @@ class RepoRequest(BaseModel):
     repo_url: str
     expert: Optional[bool] = False
     github_token: Optional[str] = None
+    model: Optional[str] = DEFAULT_MODEL
 
 
 def detect_branching_and_conventions(readme_text: str, contributing_text: str, default_branch: str = "main", repo_info: dict = None) -> dict:
@@ -170,36 +172,50 @@ def generate_custom_guide(conventions: dict, default_branch: str, repo_full_name
     commit_conv = conventions.get("commit_convention") or "Conventional Commits"
     commit_ex = conventions.get("commit_example") or "feat: ... / fix: ..."
 
+    repo_short = repo_full_name.split("/")[-1] if "/" in repo_full_name else repo_full_name
+
     return [
         {
             "step": 1,
             "title": "Fork the Repository",
-            "summary": f"Navigate to `{repo_full_name}` on GitHub and click 'Fork' to create your own isolated copy under your personal account."
+            "summary": f"Navigate to `{repo_full_name}` on GitHub and click 'Fork' to create your own isolated copy under your personal account.",
+            "code": f"git clone https://github.com/<your-username>/{repo_short}.git",
+            "code_label": "Clone command"
         },
         {
             "step": 2,
             "title": f"Branch off '{target_b}'",
-            "summary": f"Clone your fork locally, ensure you branch off '{target_b}', and apply naming convention: `git checkout -b {branch_pat}`."
+            "summary": f"Clone your fork locally, ensure you branch off '{target_b}', and apply naming convention: `git checkout -b {branch_pat}`.",
+            "code": f"git checkout -b {branch_pat}",
+            "code_label": "Branch command"
         },
         {
             "step": 3,
             "title": "Test Thoroughly",
-            "summary": f"Execute local verification tests using `{test_cmd}` to ensure linters and test suites pass without regressions."
+            "summary": f"Execute local verification tests using `{test_cmd}` to ensure linters and test suites pass without regressions.",
+            "code": test_cmd if test_cmd != "Run project test suite" and test_cmd != "project test suite" else "pytest",
+            "code_label": "Test command"
         },
         {
             "step": 4,
             "title": "Capture Results & Evidence",
-            "summary": "Record test execution output, terminal logs, or before/after UI screenshots proving your fix works."
+            "summary": "Record test execution output, terminal logs, or before/after UI screenshots proving your fix works.",
+            "code": "git status && git diff",
+            "code_label": "Verify changes"
         },
         {
             "step": 5,
             "title": f"Raise PR against '{target_b}'",
-            "summary": f"Submit a PR targeting '{target_b}'. Follow {commit_conv} format (e.g. `{commit_ex}`), attach test evidence, and link the issue (`Fixes #<number>`)."
+            "summary": f"Submit a PR targeting '{target_b}'. Follow {commit_conv} format (e.g. `{commit_ex}`), attach test evidence, and link the issue (`Fixes #<number>`).",
+            "code": f'git commit -m "{commit_ex.split(" / ")[0]}"',
+            "code_label": "Commit example"
         },
         {
             "step": 6,
             "title": "Address Review Comments",
-            "summary": "Engage constructively with maintainers, address review feedback promptly, push updates to your PR branch, and ensure CI passes."
+            "summary": "Engage constructively with maintainers, address review feedback promptly, push updates to your PR branch, and ensure CI passes.",
+            "code": f"git push origin {branch_pat.split('/')[0] if '/' in branch_pat else 'fix-branch'}",
+            "code_label": "Push branch"
         }
     ]
 
@@ -445,7 +461,12 @@ def select_easy_issue(issues: list[dict]) -> dict:
     }
 
 
-async def get_ollama_model() -> str:
+async def get_ollama_model(preferred_model: Optional[str] = None) -> str:
+    if preferred_model and preferred_model.strip():
+        clean = preferred_model.strip()
+        if clean.startswith("llma"):
+            clean = "llama" + clean[4:]
+        return clean
     env_model = os.getenv("OLLAMA_MODEL")
     if env_model:
         return env_model
@@ -454,7 +475,7 @@ async def get_ollama_model() -> str:
             resp = await client.get(f"{OLLAMA_HOST}/api/tags")
             if resp.status_code == 200:
                 models = [m.get("name") for m in resp.json().get("models", [])]
-                for preferred in ["llama3.2:1b", "llama3.2:3b", "llama3.2", "llama3"]:
+                for preferred in ["gemma4:12b", "gemma", "llama3.2:1b", "llama3.2"]:
                     for m in models:
                         if preferred in m:
                             return m
@@ -462,24 +483,24 @@ async def get_ollama_model() -> str:
                     return models[0]
     except Exception:
         pass
-    return "llama3.2:1b"
+    return DEFAULT_MODEL
 
 
-async def ask_ollama(prompt: str) -> str:
-    model = await get_ollama_model()
+async def ask_ollama(prompt: str, model_name: Optional[str] = None) -> str:
+    model = await get_ollama_model(model_name)
     try:
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.post(
                 f"{OLLAMA_HOST}/api/generate",
                 json={"model": model, "prompt": prompt, "stream": False},
             )
             if resp.status_code != 200:
-                return f"Ollama error ({resp.status_code}): {resp.text}"
+                return f"Ollama error ({resp.status_code}) using model '{model}': {resp.text}"
             return resp.json().get("response", "")
     except httpx.TimeoutException:
-        return "Ollama inference timed out after waiting for model response."
+        return f"Ollama inference ({model}) timed out after waiting for model response."
     except Exception as e:
-        return f"Ollama unavailable: {repr(e)}"
+        return f"Ollama unavailable for model '{model}': {repr(e)}"
 
 
 def build_prompt(readme: str, license_text: str, issues: list[dict], repo_info: dict, user_level: str = "entry", contributing_text: str = "") -> str:
@@ -529,6 +550,21 @@ async def analyze(req: RepoRequest):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+    selected_model = req.model or DEFAULT_MODEL
+    if selected_model.startswith("llma"):
+        selected_model = "llama" + selected_model[4:]
+
+    # Fast offline / cache check
+    safe_name = f"{owner}_{repo}".replace("/", "_")
+    cache_path = os.path.join(DATA_DIR, f"{safe_name}.json")
+    if os.path.exists(cache_path) and not req.expert:
+        try:
+            cached_data = await get_cached(owner, repo)
+            cached_data["model_used"] = selected_model
+            return cached_data
+        except Exception:
+            pass
+
     token = req.github_token or get_default_github_token()
 
     # Fetch repo metadata first to retrieve default_branch
@@ -553,7 +589,7 @@ async def analyze(req: RepoRequest):
         user_level=user_level,
         contributing_text=contributing_dict["content"]
     )
-    summary = await ask_ollama(prompt)
+    summary = await ask_ollama(prompt, model_name=selected_model)
 
     license_info = repo_info.get("license") or {}
     license_spdx = license_info.get("spdx_id") or "N/A"
@@ -603,6 +639,7 @@ async def analyze(req: RepoRequest):
         "contributing": contributing_dict,
         "open_issues": issues,
         "summary": summary,
+        "model_used": selected_model,
     }
 
     # Persist to filesystem
@@ -645,6 +682,8 @@ async def get_cached(owner: str, repo: str):
         data["readme"] = {"content": data.get("readme") or "", "html_url": f"https://github.com/{owner}/{repo}"}
     if "contributing" not in data:
         data["contributing"] = {"content": "", "html_url": f"https://github.com/{owner}/{repo}"}
+    if "model_used" not in data:
+        data["model_used"] = DEFAULT_MODEL
 
     return data
 

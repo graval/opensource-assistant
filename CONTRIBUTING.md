@@ -20,8 +20,8 @@ We are committed to providing a friendly, safe, and welcoming environment for ev
 ### 2. Fork and Clone
 ```bash
 # Clone your fork
-git clone https://github.com/<your-username>/oss-contributor-assistant.git
-cd oss-contributor-assistant
+git clone https://github.com/<your-username>/opensource-assistant.git
+cd opensource-assistant
 ```
 
 ### 3. Create a Virtual Environment & Install Dependencies
