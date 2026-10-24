@@ -3,6 +3,7 @@ import json
 import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 
@@ -19,11 +20,12 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:1b")
 
 
 class RepoRequest(BaseModel):
     repo_url: str
+    expert: Optional[bool] = False
 
 
 def parse_github_url(url: str) -> tuple[str, str]:
@@ -87,18 +89,41 @@ async def fetch_repo_info(owner: str, repo: str) -> dict:
     return await fetch_github(f"repos/{owner}/{repo}")
 
 
-async def ask_ollama(prompt: str) -> str:
+async def get_ollama_model() -> str:
+    env_model = os.getenv("OLLAMA_MODEL")
+    if env_model:
+        return env_model
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            resp = await client.get(f"{OLLAMA_HOST}/api/tags")
+            if resp.status_code == 200:
+                models = [m.get("name") for m in resp.json().get("models", [])]
+                for preferred in ["llama3.2:1b", "llama3.2:3b", "llama3.2", "llama3"]:
+                    for m in models:
+                        if preferred in m:
+                            return m
+                if models:
+                    return models[0]
+    except Exception:
+        pass
+    return "llama3.2:1b"
+
+
+async def ask_ollama(prompt: str) -> str:
+    model = await get_ollama_model()
+    try:
+        async with httpx.AsyncClient(timeout=120.0) as client:
             resp = await client.post(
                 f"{OLLAMA_HOST}/api/generate",
-                json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
+                json={"model": model, "prompt": prompt, "stream": False},
             )
             if resp.status_code != 200:
                 return f"Ollama error ({resp.status_code}): {resp.text}"
             return resp.json().get("response", "")
+    except httpx.TimeoutException:
+        return "Ollama inference timed out after waiting for model response."
     except Exception as e:
-        return f"Ollama unavailable: {str(e)}"
+        return f"Ollama unavailable: {repr(e)}"
 
 
 def build_prompt(readme: str, license_text: str, issues: list[dict], repo_info: dict, user_level: str = "entry") -> str:
@@ -107,13 +132,16 @@ def build_prompt(readme: str, license_text: str, issues: list[dict], repo_info: 
         for i in issues[:10]
     ) or "No open issues found."
 
+    license_info = repo_info.get('license') or {}
+    license_name = license_info.get('spdx_id') or 'N/A'
+
     return f"""
 You are an open-source contributor assistant. The user level is "{user_level}".
 
 Repository: {repo_info.get('full_name')}
 Description: {repo_info.get('description') or 'N/A'}
 Stars: {repo_info.get('stargazers_count', 0)}
-License: {repo_info.get('license', {}).get('spdx_id') or 'N/A'}
+License: {license_name}
 
 README (truncated):
 {readme[:2000]}
@@ -148,14 +176,18 @@ async def analyze(req: RepoRequest):
         fetch_issues(owner, repo),
     )
 
-    prompt = build_prompt(readme, license_text, issues, repo_info)
+    user_level = "intermediate/expert" if req.expert else "entry"
+    prompt = build_prompt(readme, license_text, issues, repo_info, user_level=user_level)
     summary = await ask_ollama(prompt)
+
+    license_info = repo_info.get("license") or {}
+    license_spdx = license_info.get("spdx_id") or "N/A"
 
     result = {
         "repo": {"owner": owner, "name": repo, "full_name": repo_info.get("full_name")},
         "description": repo_info.get("description"),
         "stars": repo_info.get("stargazers_count", 0),
-        "license": repo_info.get("license", {}).get("spdx_id") or "N/A",
+        "license": license_spdx,
         "open_issues": issues,
         "summary": summary,
     }
@@ -182,3 +214,14 @@ async def get_cached(owner: str, repo: str):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
+if os.path.exists(FRONTEND_DIR):
+    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", "8001"))
+    uvicorn.run("app:app", host="127.0.0.1", port=port, reload=True)

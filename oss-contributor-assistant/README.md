@@ -1,85 +1,150 @@
 # OSS Contributor Assistant
 
-A Hacktoberfest 2026 project that helps newcomers find their first open-source contribution. 
+A modern open-source tool built to help newcomers find their first open-source contribution and navigate codebases with confidence.
 
-Paste a GitHub repository URL, and the assistant will analyze the repo's README, LICENSE, and open issues using a local LLM (via [Ollama](https://ollama.com/)) to generate a beginner-friendly summary and suggest a suitable first issue to work on.
+Paste any public GitHub repository URL, and the assistant fetches the repository's README, license, metadata, and open issues, then uses a local LLM (via [Ollama](https://ollama.com/)) to generate a beginner-friendly summary, contribution steps, and suggest an accessible first issue to tackle.
+
+---
 
 ## Features
 
-- **Repo Analysis**: Fetches README, LICENSE, repository metadata, and open issues from GitHub
-- **AI-Powered Guidance**: Uses Ollama to generate actionable advice tailored to entry-level contributors
-- **Beginner-Friendly Suggestions**: Prioritizes issues labeled `good first issue`, `beginner`, or `help wanted`
-- **Caching**: Results are saved as JSON in the `data/` directory for quick retrieval
-- **Simple UI**: Clean Tailwind CSS frontend with markdown rendering
+- **Automated Repo Analysis**: Fetches repository metadata, README, LICENSE, and open issues via the GitHub API.
+- **AI-Powered Contributor Guidance**: Uses a local LLM via Ollama to generate actionable advice tailored to your experience level (entry-level or expert).
+- **First Issue Recommendations**: Identifies issues with labels like `good first issue`, `beginner`, or `help wanted`.
+- **Offline Caching**: Results are stored as structured JSON in the `data/` directory for fast re-access.
+- **Single-Server Deployment**: FastAPI automatically mounts and serves the Tailwind CSS web interface at the root URL.
+- **Dynamic Model Selection**: Auto-detects installed Ollama models (`llama3.2:1b`, `llama3.2:3b`, etc.) with intelligent fallback.
+
+---
+
+## Architecture Overview
+
+```
+┌────────────────────────────────────────────────────────┐
+│               Frontend (Tailwind + Marked.js)          │
+│               Served at http://localhost:8001/         │
+└──────────────────────────┬─────────────────────────────┘
+                           │ HTTP POST /analyze
+                           ▼
+┌────────────────────────────────────────────────────────┐
+│               FastAPI Server (backend/app.py)          │
+│  ├── StaticFiles (mounts frontend)                     │
+│  ├── GitHub Ingestion (httpx async client)             │
+│  ├── Context Synthesizer & Prompt Builder              │
+│  └── Dynamic Ollama LLM Client                         │
+└──────────────┬───────────────────────────┬─────────────┘
+               │                           │
+               ▼                           ▼
+┌──────────────────────────┐  ┌──────────────────────────┐
+│   Ollama Local Runtime   │  │   Cached File Storage    │
+│   (llama3.2:1b / 3b)     │  │   data/<owner>_<repo>.json│
+└──────────────────────────┘  └──────────────────────────┘
+```
+
+The codebase is structured following **SOLID principles** and standard design patterns to facilitate autonomous agentic and human development. See [`AGENTS.md`](./AGENTS.md) for architectural details.
+
+---
 
 ## Prerequisites
 
 - [Python 3.8+](https://www.python.org/downloads/)
 - [Ollama](https://ollama.com/download) installed and running locally
-- Internet connection (for GitHub API and initial model download)
+- Internet connection (for GitHub API queries and initial model download)
+
+---
 
 ## Installation & Setup
 
-### 1. Install dependencies
-
+### 1. Clone the repository
 ```bash
+git clone https://github.com/<your-username>/oss-contributor-assistant.git
+cd oss-contributor-assistant
+```
+
+### 2. Set up virtual environment & install dependencies
+```bash
+# Create virtual environment
+python -m venv .venv
+
+# Activate it:
+# Windows (PowerShell):
+.venv\Scripts\Activate.ps1
+# Linux / macOS:
+source .venv/bin/activate
+
+# Install required packages
 pip install -r requirements.txt
 ```
 
-### 2. Set up Ollama model
-
-Pull the default model (run once):
-
+### 3. Pull a recommended local model
+For lightweight and fast local inference on CPU or GPU, pull `llama3.2:1b` (or `llama3.2:3b`):
 ```bash
-ollama pull llama3.2:3b
+ollama pull llama3.2:1b
 ```
+*Note: The assistant will automatically detect installed models, or you can override it with the `OLLAMA_MODEL` environment variable.*
 
-You can use a different model by setting the `OLLAMA_MODEL` environment variable.
-
-### 3. Start the backend
-
+### 4. Start the application
 ```bash
 cd backend
 python app.py
-# or run with hot reload:
-# uvicorn app:app --reload
 ```
 
-The API will be available at `http://localhost:8000` by default.
+The application is now accessible at **[http://localhost:8001](http://localhost:8001)** (serving both the interactive web UI and API).
 
-### 4. Open the frontend
+---
 
-Open `frontend/index.html` directly in your browser, or serve it with a local web server:
+## Configuration
 
-```bash
-# From the project root
-python -m http.server 8080
-# Then navigate to http://localhost:8080/frontend/
-```
+You can customize the application using environment variables:
+
+| Variable | Default | Description |
+| :--- | :--- | :--- |
+| `PORT` | `8001` | Port on which the FastAPI application and UI will listen |
+| `OLLAMA_HOST` | `http://localhost:11434` | URL of your local Ollama instance |
+| `OLLAMA_MODEL` | `llama3.2:1b` | Target Ollama model name (auto-detects if unset) |
+
+---
 
 ## API Endpoints
 
 | Method | Endpoint | Description |
-| --- | --- | --- |
-| `POST` | `/analyze` | Analyze a repo. Body: `{"repo_url": "https://github.com/owner/repo"}` |
-| `GET` | `/analyze/{owner}/{repo}` | Retrieve cached analysis for a repo |
-| `GET` | `/health` | Health check endpoint |
+| :--- | :--- | :--- |
+| `GET` | `/` | Web UI (served via FastAPI static files) |
+| `GET` | `/health` | Health check endpoint returning `{"status": "ok"}` |
+| `POST` | `/analyze` | Analyze a repository (`{"repo_url": "https://github.com/owner/repo", "expert": false}`) |
+| `GET` | `/analyze/{owner}/{repo}` | Retrieve cached JSON analysis for a previously analyzed repository |
 
-## Configuration
+---
 
-You can configure the app using environment variables:
+## Project Structure
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `OLLAMA_HOST` | `http://localhost:11434` | URL of your Ollama instance |
-| `OLLAMA_MODEL` | `llama3.2:3b` | Model to use for analysis |
+```
+oss-contributor-assistant/
+├── backend/
+│   └── app.py            # FastAPI server, GitHub fetching, Ollama integration, static mount
+├── frontend/
+│   └── index.html        # Responsive web interface with Tailwind CSS and Marked.js
+├── data/
+│   ├── .gitkeep          # Directory placeholder (cached JSON ignored by git)
+│   └── ...               # Persisted analysis results (e.g. octocat_Hello-World.json)
+├── AGENTS.md             # Autonomous development guide & SOLID principles documentation
+├── CONTRIBUTING.md       # Contribution guidelines, workflow, and PR checklist
+├── LICENSE               # MIT License
+├── README.md             # Project documentation and setup guide
+├── requirements.txt      # Python dependencies
+└── .gitignore            # Git exclusion rules ensuring only code is tracked
+```
 
-## Data Storage
+---
 
-Analysis results are persisted to `data/<owner>_<repo>.json` as JSON files for caching and offline access.
+## Contributing
 
-## Tech Stack
+We welcome contributions! Please review [`CONTRIBUTING.md`](./CONTRIBUTING.md) for development workflows, coding standards, and pull request guidelines.
 
-- **Backend**: [FastAPI](https://fastapi.tiangolo.com/), [httpx](https://www.python-httpx.org/), [Uvicorn](https://www.uvicorn.org/)
-- **Frontend**: Vanilla HTML/JS, [Tailwind CSS](https://tailwindcss.com/), [Marked.js](https://marked.js.org/)
-- **LLM**: [Ollama](https://ollama.com/) (local inference)
+If you are developing autonomously using AI agents, please consult [`AGENTS.md`](./AGENTS.md) for architectural and safety specifications.
+
+---
+
+## License
+
+This project is licensed under the [MIT License](./LICENSE).

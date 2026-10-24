@@ -109,10 +109,13 @@ form.addEventListener('submit', async (e) => {
     submitBtn.disabled = true;
 
     try {
-        const resp = await fetch('/analyze', {
+        const apiBase = (window.location.protocol === 'file:')
+            ? 'http://localhost:8001'
+            : '';
+        const resp = await fetch(`${apiBase}/analyze`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ repo_url: url })
+            body: JSON.stringify({ repo_url: url, expert: expert })
         });
 
         if (!resp.ok) {
