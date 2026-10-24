@@ -2,7 +2,17 @@
 
 A modern open-source tool built to help newcomers find their first open-source contribution and navigate codebases with confidence.
 
-Paste any public GitHub repository URL, and the assistant fetches the repository's README, license, metadata, and open issues, then uses a local LLM (via [Ollama](https://ollama.com/)) to generate a beginner-friendly summary, contribution steps, and suggest an accessible first issue to tackle.
+Paste any public GitHub repository URL, and the assistant fetches the repository's README, license, metadata, and open issues, then uses a local LLM (via [Ollama](https://ollama.com/)) to generate a beginner-friendly summary, contribution steps, dynamic branch & naming conventions, AI usage policies, and accessible first issues to tackle.
+
+---
+
+## Screenshots
+
+### 1. Interactive Web Interface & Live Rate Limit Tracker
+![OSS Contributor Assistant Homepage](docs/images/ui-homepage.png)
+
+### 2. Comprehensive Repository Analysis & Conventions Quick View
+![Repository Analysis Results](docs/images/ui-analysis-result.png)
 
 ---
 
@@ -41,7 +51,7 @@ Paste any public GitHub repository URL, and the assistant fetches the repository
 └──────────────────────────┘  └──────────────────────────┘
 ```
 
-The codebase is structured following **SOLID principles** and standard design patterns to facilitate autonomous agentic and human development. See [`AGENTS.md`](./AGENTS.md) for architectural details.
+The codebase is structured following **SOLID principles** and standard design patterns to facilitate autonomous agentic and human development. For complete system sequence diagrams, authentication hierarchy flows, and component breakdown, read the **[Architecture Documentation (docs/ARCHITECTURE.md)](./docs/ARCHITECTURE.md)** and see [`AGENTS.md`](./AGENTS.md).
 
 ---
 
@@ -126,9 +136,13 @@ oss-contributor-assistant/
 │   └── app.py            # FastAPI server, GitHub fetching, Ollama integration, static mount
 ├── frontend/
 │   └── index.html        # Responsive web interface with Tailwind CSS and Marked.js
+├── docs/
+│   ├── ARCHITECTURE.md   # Deep architectural specification, sequence diagrams, & SOLID design
+│   └── images/           # UI screenshots for documentation
 ├── data/
 │   ├── .gitkeep          # Directory placeholder (cached JSON ignored by git)
 │   └── ...               # Persisted analysis results (e.g. octocat_Hello-World.json)
+├── ARCHITECTURE.md       # Root architecture entry point
 ├── AGENTS.md             # Autonomous development guide & SOLID principles documentation
 ├── CONTRIBUTING.md       # Contribution guidelines, workflow, and PR checklist
 ├── LICENSE               # MIT License
