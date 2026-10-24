@@ -198,7 +198,70 @@
 
         </div>
 
-        <!-- 3. Contribution Guide (Expandable Section with 6 Steps) -->
+        <!-- 3. Branch & Naming Conventions (Quick View) -->
+        <div class="bg-gradient-to-br from-indigo-50/70 via-white to-slate-50 rounded-2xl shadow-sm border border-indigo-100 p-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-indigo-100/70">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-sm font-bold shadow-sm">🌿</div>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base">Branch & Naming Conventions (Quick View)</h3>
+                        <p class="text-xs text-slate-500">Repository-specific git workflow extracted from guidelines & README</p>
+                    </div>
+                </div>
+                <span class="inline-flex items-center gap-1.5 text-xs font-mono bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full font-semibold border border-indigo-200 self-start sm:self-auto">
+                    Base: <span id="quickTargetBranch" class="font-bold">main</span>
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- 1. Target Base Branch -->
+                <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Target Base Branch</span>
+                        <div class="flex items-center gap-1.5 font-mono text-sm font-bold text-indigo-700">
+                            <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
+                            <code id="quickBaseBranch" class="bg-indigo-50 px-2 py-0.5 rounded text-indigo-800 border border-indigo-100">main</code>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-2">PRs must be opened against this branch</p>
+                </div>
+
+                <!-- 2. Feature Branch Pattern -->
+                <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Branch Naming Pattern</span>
+                        <div class="font-mono text-xs font-bold text-emerald-800 truncate">
+                            <code id="quickBranchPattern" class="bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-emerald-800 block truncate">fix/<issue>-<name></code>
+                        </div>
+                    </div>
+                    <p id="quickBranchSource" class="text-[11px] text-slate-500 mt-2 truncate">Detected in Guidelines</p>
+                </div>
+
+                <!-- 3. Commit & PR Title Style -->
+                <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Commit / PR Style</span>
+                        <div class="font-mono text-xs font-bold text-purple-800 truncate">
+                            <span id="quickCommitStyle" class="bg-purple-50 px-2 py-0.5 rounded border border-purple-200 text-purple-800 inline-block truncate max-w-full">Conventional</span>
+                        </div>
+                    </div>
+                    <p id="quickCommitEx" class="text-[11px] text-slate-500 mt-2 truncate">feat: ... / fix: ...</p>
+                </div>
+
+                <!-- 4. Verification & Test Command -->
+                <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Local Test Command</span>
+                        <div class="font-mono text-xs font-bold text-amber-800 truncate">
+                            <code id="quickTestCmd" class="bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-amber-800 block truncate">pytest</code>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-2">Run locally before creating PR</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Contribution Guide (Expandable Section with Custom Steps) -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <details class="group" open>
                 <summary class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between cursor-pointer select-none hover:bg-slate-100/70 transition">
@@ -428,6 +491,17 @@ function renderResult(data) {
         easyWhy.textContent = easyIssue.why || 'Repository has no open issues.';
         easyLabels.innerHTML = '';
     }
+
+    // 3.5. Branch & Naming Conventions Quick View
+    const conv = data.conventions || {};
+    const targetBranch = conv.target_branch || data.repo.default_branch || 'main';
+    document.getElementById('quickTargetBranch').textContent = targetBranch;
+    document.getElementById('quickBaseBranch').textContent = targetBranch;
+    document.getElementById('quickBranchPattern').textContent = conv.branch_pattern || 'fix/<issue>-<name>';
+    document.getElementById('quickBranchSource').textContent = conv.branch_source || 'Standard Best Practice';
+    document.getElementById('quickCommitStyle').textContent = conv.commit_convention || 'Conventional';
+    document.getElementById('quickCommitEx').textContent = conv.commit_example || 'feat: ... / fix: ...';
+    document.getElementById('quickTestCmd').textContent = conv.test_command || 'Run test suite';
 
     // 4. Contribution Steps
     const stepsContainer = document.getElementById('contributionStepsContainer');

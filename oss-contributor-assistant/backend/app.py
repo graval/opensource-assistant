@@ -30,38 +30,149 @@ class RepoRequest(BaseModel):
     expert: Optional[bool] = False
 
 
-CONTRIBUTION_STEPS = [
-    {
-        "step": 1,
-        "title": "Fork the Repository",
-        "summary": "Navigate to the project on GitHub and click 'Fork' to create an independent copy under your account."
-    },
-    {
-        "step": 2,
-        "title": "Change in Fork",
-        "summary": "Clone your fork locally, branch off main (`git checkout -b fix/issue-name`), and make minimal, clean code changes."
-    },
-    {
-        "step": 3,
-        "title": "Test Thoroughly",
-        "summary": "Run the project's test suite, linters, and type checkers locally to ensure no regressions or breakages."
-    },
-    {
-        "step": 4,
-        "title": "Capture Results & Evidence",
-        "summary": "Record test execution logs, terminal outputs, or UI screenshots to provide concrete proof of verification."
-    },
-    {
-        "step": 5,
-        "title": "Raise PR with Test Evidence & Explanation",
-        "summary": "Open a pull request from your branch to upstream, attaching your test evidence, problem explanation, and issue link."
-    },
-    {
-        "step": 6,
-        "title": "Address Review Comments",
-        "summary": "Engage with maintainers, address feedback promptly, push updates to your PR branch, and ensure CI passes."
+def detect_branching_and_conventions(readme_text: str, contributing_text: str, default_branch: str = "main", repo_info: dict = None) -> dict:
+    if repo_info is None:
+        repo_info = {}
+    combined = (readme_text + "\n" + contributing_text).lower()
+
+    # 1. Target Base Branch
+    target_branch = default_branch
+    if "target develop" in combined or "pr against develop" in combined or "to the develop branch" in combined or "into develop" in combined:
+        target_branch = "develop"
+    elif "target dev" in combined or "pr against dev" in combined or "into dev" in combined:
+        target_branch = "dev"
+    elif "target main" in combined or "into main" in combined:
+        target_branch = "main"
+    elif "target master" in combined or "into master" in combined:
+        target_branch = "master"
+
+    # 2. Branch Naming Pattern
+    import re
+    branch_pattern = None
+    branch_source = "Recommended Standard"
+
+    m = re.search(r"git checkout -b\s+([a-zA-Z0-9_\-\/<>]+)", combined)
+    if m:
+        sample = m.group(1).strip()
+        if sample and sample not in ["<branch>", "branch_name", "branch-name", "your-branch", "my-branch", "new-branch"]:
+            branch_pattern = sample
+            branch_source = "Detected in Guidelines"
+
+    if not branch_pattern:
+        if "feature/" in combined or "fix/" in combined:
+            branch_pattern = "fix/<issue-number>-<short-description>"
+            branch_source = "Detected in Guidelines (prefix style)"
+        elif "issue-" in combined or "issue/" in combined:
+            branch_pattern = "issue-<number>-<description>"
+            branch_source = "Detected in Guidelines (issue style)"
+        elif "gh-" in combined:
+            branch_pattern = "gh-<number>-<description>"
+            branch_source = "Detected in Guidelines (GH style)"
+        else:
+            branch_pattern = "fix/<issue-number>-<short-description>"
+            branch_source = "Standard Best Practice (no custom rule found)"
+
+    # 3. Commit & PR Title Convention
+    commit_convention = "Conventional Commits"
+    commit_example = "feat: add user profile / fix(core): handle null pointer"
+    commit_source = "Recommended Default"
+
+    if "conventional commit" in combined or "conventionalcommits.org" in combined:
+        commit_convention = "Conventional Commits"
+        commit_example = "feat: <summary> / fix: <summary>"
+        commit_source = "Required by Guidelines"
+    elif "gitmoji" in combined:
+        commit_convention = "Gitmoji"
+        commit_example = ":sparkles: new feature / :bug: fix bug"
+        commit_source = "Required by Guidelines"
+    elif "semantic commit" in combined:
+        commit_convention = "Semantic Commits"
+        commit_example = "feat(scope): <description>"
+        commit_source = "Required by Guidelines"
+    elif "[#" in combined or "closes #" in combined or "fixes #" in combined:
+        commit_convention = "Issue Linked Commits"
+        commit_example = "Fix bug in parser (Fixes #123)"
+        commit_source = "Guidelines specify issue linking"
+
+    # 4. Testing & Verification Command
+    language = (repo_info.get("language") or "").lower()
+    test_cmd = "Run project test suite"
+
+    if "pytest" in combined:
+        test_cmd = "pytest"
+    elif "npm test" in combined or "yarn test" in combined or "pnpm test" in combined:
+        test_cmd = "npm test"
+    elif "cargo test" in combined:
+        test_cmd = "cargo test"
+    elif "go test" in combined:
+        test_cmd = "go test ./..."
+    elif "mvn test" in combined:
+        test_cmd = "mvn test"
+    elif "./gradlew test" in combined or "gradle test" in combined:
+        test_cmd = "./gradlew test"
+    elif "tox" in combined:
+        test_cmd = "tox"
+    elif language == "python":
+        test_cmd = "pytest"
+    elif language in ["javascript", "typescript"]:
+        test_cmd = "npm test"
+    elif language == "rust":
+        test_cmd = "cargo test"
+    elif language == "go":
+        test_cmd = "go test ./..."
+    elif language == "java":
+        test_cmd = "mvn test"
+
+    return {
+        "target_branch": target_branch,
+        "branch_pattern": branch_pattern,
+        "branch_source": branch_source,
+        "commit_convention": commit_convention,
+        "commit_example": commit_example,
+        "commit_source": commit_source,
+        "test_command": test_cmd,
     }
-]
+
+
+def generate_custom_guide(conventions: dict, default_branch: str, repo_full_name: str) -> list[dict]:
+    target_b = conventions.get("target_branch") or default_branch or "main"
+    branch_pat = conventions.get("branch_pattern") or "fix/<issue-number>-<short-description>"
+    test_cmd = conventions.get("test_command") or "project test suite"
+    commit_conv = conventions.get("commit_convention") or "Conventional Commits"
+    commit_ex = conventions.get("commit_example") or "feat: ... / fix: ..."
+
+    return [
+        {
+            "step": 1,
+            "title": "Fork the Repository",
+            "summary": f"Navigate to `{repo_full_name}` on GitHub and click 'Fork' to create your own isolated copy under your personal account."
+        },
+        {
+            "step": 2,
+            "title": f"Branch off '{target_b}'",
+            "summary": f"Clone your fork locally, ensure you branch off '{target_b}', and apply naming convention: `git checkout -b {branch_pat}`."
+        },
+        {
+            "step": 3,
+            "title": "Test Thoroughly",
+            "summary": f"Execute local verification tests using `{test_cmd}` to ensure linters and test suites pass without regressions."
+        },
+        {
+            "step": 4,
+            "title": "Capture Results & Evidence",
+            "summary": "Record test execution output, terminal logs, or before/after UI screenshots proving your fix works."
+        },
+        {
+            "step": 5,
+            "title": f"Raise PR against '{target_b}'",
+            "summary": f"Submit a PR targeting '{target_b}'. Follow {commit_conv} format (e.g. `{commit_ex}`), attach test evidence, and link the issue (`Fixes #<number>`)."
+        },
+        {
+            "step": 6,
+            "title": "Address Review Comments",
+            "summary": "Engage constructively with maintainers, address review feedback promptly, push updates to your PR branch, and ensure CI passes."
+        }
+    ]
 
 
 def parse_github_url(url: str) -> tuple[str, str]:
@@ -393,6 +504,17 @@ async def analyze(req: RepoRequest):
 
     ai_policy = evaluate_ai_policy(readme_dict["content"], contributing_dict["content"])
     easy_issue = select_easy_issue(issues)
+    conventions = detect_branching_and_conventions(
+        readme_dict["content"],
+        contributing_dict["content"],
+        default_branch=default_branch,
+        repo_info=repo_info
+    )
+    custom_guide = generate_custom_guide(
+        conventions,
+        default_branch=default_branch,
+        repo_full_name=repo_info.get("full_name") or f"{owner}/{repo}"
+    )
 
     now = datetime.now(timezone.utc)
     last_fetched = {
@@ -415,7 +537,8 @@ async def analyze(req: RepoRequest):
         "latest_commit": latest_commit,
         "ai_policy": ai_policy,
         "easy_issue": easy_issue,
-        "contribution_steps": CONTRIBUTION_STEPS,
+        "conventions": conventions,
+        "contribution_steps": custom_guide,
         "readme": readme_dict,
         "contributing": contributing_dict,
         "open_issues": issues,
@@ -441,11 +564,16 @@ async def get_cached(owner: str, repo: str):
         data = json.load(f)
 
     # Backfill fields for backwards compatibility with older cache files
-    if "contribution_steps" not in data:
-        data["contribution_steps"] = CONTRIBUTION_STEPS
+    readme_c = data.get("readme", {}).get("content", "") if isinstance(data.get("readme"), dict) else ""
+    contrib_c = data.get("contributing", {}).get("content", "") if isinstance(data.get("contributing"), dict) else ""
+    def_b = data.get("repo", {}).get("default_branch", "main")
+    full_n = data.get("repo", {}).get("full_name") or f"{owner}/{repo}"
+
+    if "conventions" not in data:
+        data["conventions"] = detect_branching_and_conventions(readme_c, contrib_c, default_branch=def_b, repo_info={})
+    if "contribution_steps" not in data or not isinstance(data.get("contribution_steps"), list):
+        data["contribution_steps"] = generate_custom_guide(data["conventions"], default_branch=def_b, repo_full_name=full_n)
     if "ai_policy" not in data:
-        readme_c = data.get("readme", {}).get("content", "") if isinstance(data.get("readme"), dict) else ""
-        contrib_c = data.get("contributing", {}).get("content", "") if isinstance(data.get("contributing"), dict) else ""
         data["ai_policy"] = evaluate_ai_policy(readme_c, contrib_c)
     if "easy_issue" not in data:
         data["easy_issue"] = select_easy_issue(data.get("open_issues", []))
